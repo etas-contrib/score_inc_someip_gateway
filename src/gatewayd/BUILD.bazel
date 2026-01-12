@@ -90,3 +90,21 @@ validate_json_schema_test(
     schema = "@score_communication//score/mw/com:config_schema",
     tags = ["lint"],
 )
+
+genrule(
+    name = "generate_gatewayd_config_schema",
+    srcs = [
+        "etc/gatewayd_config.fbs",
+    ],
+    outs = ["gatewayd_config.schema.json"],
+    cmd = "$(location @flatbuffers//:flatc) --jsonschema -o $(@D) $(SRCS)",
+    tools = ["@flatbuffers//:flatc"],
+)
+
+validate_json_schema_test(
+    name = "gatewayd_config_schema_validation",
+    size = "small",
+    json = "etc/gatewayd_config.json",
+    schema = "etc/gatewayd_config.schema.json",
+    tags = ["lint"],
+)
