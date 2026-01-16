@@ -22,7 +22,15 @@
 
 #include "score/mw/com/runtime.h"
 #include "score/span.hpp"
+#include "src/network_service/interfaces/control_channel.h"
 #include "src/network_service/interfaces/message_transfer.h"
+#include "vsomeip_network_server.h"
+
+#ifdef __QNX__
+#include "score/message_passing/qnx_dispatch/qnx_dispatch_server_factory.h"
+#else
+#include "score/message_passing/unix_domain/unix_domain_server_factory.h"
+#endif
 
 const char* someipd_name = "someipd";
 
@@ -47,6 +55,9 @@ static const std::size_t max_sample_count = 10;
 #define OTHER_SAMPLE_INSTANCE_ID 0x5422
 #define OTHER_SAMPLE_METHOD_ID 0x1421
 
+using namespace score::someip_gateway::someipd;
+
+namespace control_channel = score::someip_gateway::network_service::interfaces::control_channel;
 using score::someip_gateway::network_service::interfaces::message_transfer::
     SomeipMessageTransferProxy;
 using score::someip_gateway::network_service::interfaces::message_transfer::
@@ -67,6 +78,22 @@ int main(int argc, const char* argv[]) {
     std::signal(SIGINT, termination_handler);
 
     score::mw::com::runtime::InitializeRuntime(argc, argv);
+
+    // Suppress "AUTOSAR C++14 A16-0-1" rule findings.
+    // This is the standard way to determine if it runs on QNX or Unix
+    // coverity[autosar_cpp14_a16_0_1_violation]
+#ifdef __QNX__
+    score::message_passing::QnxDispatchServerFactory server_factory{};
+    // coverity[autosar_cpp14_a16_0_1_violation]
+#else
+    score::message_passing::UnixDomainServerFactory server_factory{};
+    // coverity[autosar_cpp14_a16_0_1_violation]
+#endif
+    auto control_server = server_factory.Create(control_channel::PROTOCOL_CONFIG, {});
+    control_server->StartListening([](score::message_passing::IServerConnection& connection) {
+        return score::cpp::pmr::make_unique<VsomeipNetworkServer>(
+            score::cpp::pmr::get_default_resource(), connection);
+    });
 
     auto runtime = vsomeip::runtime::get();
     auto application = runtime->create_application(someipd_name);

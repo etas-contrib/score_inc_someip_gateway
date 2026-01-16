@@ -28,11 +28,20 @@ cc_library(
 )
 
 cc_library(
+    name = "interfaces/control_channel",
+    hdrs = ["interfaces/control_channel.h"],
+    deps = [
+        "@score_communication//score/message_passing",
+    ],
+)
+
+cc_library(
     name = "provider",
     srcs = [],
     hdrs = [],
     visibility = ["//visibility:public"],
     deps = [
+        ":interfaces/control_channel",
         ":interfaces/message_transfer",
     ],
 )
@@ -43,6 +52,7 @@ cc_library(
     hdrs = [],
     visibility = ["//visibility:public"],
     deps = [
+        ":interfaces/control_channel",
         ":interfaces/message_transfer",
     ],
 )
