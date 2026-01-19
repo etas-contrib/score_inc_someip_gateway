@@ -118,3 +118,18 @@ bazel test //<my_project>:<my_gatewayd_config_validation_test>
 ```
 
 If the test passes, your configuration file is valid. If it fails, the test logs will provide details about the validation errors.
+
+#### Generate Configuration Binary
+
+If validation passed successful you can add the following macro in your `BUILD.bazel` to generate a `gatewayd_config.bin`
+
+```
+load("@score_someip_gateway//:bazel/tools/someip_config_rule.bzl", "generate_someip_config")
+generate_someip_config(
+    name = "<rule_name>",
+    json = "//<project>:<gatewayd_config_json",
+    visibility = ["//visibility:public"],
+)
+```
+
+The `gatewayd_config.bin` can then be generated with the following command: `bazel build //<project>:<rule_name>`
