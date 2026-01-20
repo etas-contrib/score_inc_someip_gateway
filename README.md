@@ -86,8 +86,8 @@ The `gatewayd` module uses a JSON file for configuration. To ensure the validity
 
 The JSON schema for the `gatewayd` configuration is located at:
 
-```
-/src/gatewayd/etc/gatewayd_config.schema.json
+```bash
+src/gatewayd/etc/gatewayd_config.schema.json
 ```
 
 This schema defines the expected properties, data types, and constraints for a valid `gatewayd_config.json` configuration file.
@@ -98,23 +98,20 @@ You can validate your JSON configuration file against the schema using the `vali
 
 To add a validation test to your project, add the following to your `BUILD.bazel` file:
 
-```bazel
-# Assuming 'validate_json_schema_test' is available in your project
-# and you have a config file named 'gatewayd_config.json'
-
-validate_json_schema_test(
-    name = "my_gatewayd_config_validation_test",
-    schema = "//src/gatewayd/etc:gatewayd_config.schema.json",
-    json = "gatewayd_config.json",
+```bash
+load("@score_someip_gateway//:bazel/tools/someip_config.bzl", "validate_someip_config_test")
+validate_someip_config_test(
+    name = "<validation_rule_name>",
+    expect_failure = <False / True>,
+    json = "//<package>:<path_to_gatewayd_config_json>",
+    visibility = ["//visibility:public"],
 )
 ```
-
-**Note**: You will need to replace `gatewayd_config.json` with the actual paths to your configuration file, respectively.
 
 To run the validation test, execute the following command from the root of your workspace:
 
 ```bash
-bazel test //<my_project>:<my_gatewayd_config_validation_test>
+bazel test //:<validation_rule_name> # if added to root BUILD.bazel
 ```
 
 If the test passes, your configuration file is valid. If it fails, the test logs will provide details about the validation errors.
@@ -123,13 +120,16 @@ If the test passes, your configuration file is valid. If it fails, the test logs
 
 If validation passed successful you can add the following macro in your `BUILD.bazel` to generate a `gatewayd_config.bin`
 
-```
-load("@score_someip_gateway//:bazel/tools/someip_config_rule.bzl", "generate_someip_config")
+```bash
+load("@score_someip_gateway//:bazel/tools/someip_config.bzl", "generate_someip_config")
 generate_someip_config(
-    name = "<rule_name>",
-    json = "//<project>:<gatewayd_config_json",
+    name = "<generation_rule_name>",
+    json = "//<project>:<gatewayd_config_json>",
     visibility = ["//visibility:public"],
 )
 ```
 
-The `gatewayd_config.bin` can then be generated with the following command: `bazel build //<project>:<rule_name>`
+The `gatewayd_config.bin` can then be generated with the following command:
+```bash
+bazel build //:<generation_rule_name> # if added to root BUILD.bazel
+```

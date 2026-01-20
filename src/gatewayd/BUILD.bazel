@@ -21,10 +21,13 @@ load("@rules_cc//cc:cc_binary.bzl", "cc_binary")
 load("@rules_cc//cc:cc_library.bzl", "cc_library")
 load("@score_communication//bazel/tools:json_schema_validator.bzl", "validate_json_schema_test")
 
-exports_files([
-    "etc/gatewayd_config.fbs",
-    "etc/gatewayd_config.json",
-])
+exports_files(
+    [
+        "etc/gatewayd_config.fbs",
+        "etc/gatewayd_config.json",
+        "etc/gatewayd_config.schema.json",
+    ],
+)
 
 cc_binary(
     name = "gatewayd",
