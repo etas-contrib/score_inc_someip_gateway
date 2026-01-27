@@ -20,13 +20,13 @@ load("@flatbuffers//:build_defs.bzl", "flatbuffer_cc_library")
 load("@rules_cc//cc:cc_binary.bzl", "cc_binary")
 load("@rules_cc//cc:cc_library.bzl", "cc_library")
 load("@score_communication//bazel/tools:json_schema_validator.bzl", "validate_json_schema_test")
-load("@score_someip_gateway//:bazel/tools/someip_config.bzl", "generate_someip_config_bin", "validate_someip_config_test")
+load("@score_someip_gateway//bazel/tools:someip_config.bzl", "generate_someip_config_bin", "validate_someip_config_test")
 
 exports_files(
     [
         "etc/gatewayd_config.fbs",
         "etc/gatewayd_config.json",
-        "etc/gatewayd_config_schema.json",
+        "etc/gatewayd_config.schema.json",
     ],
 )
 
@@ -95,31 +95,22 @@ validate_json_schema_test(
 
 filegroup(
     name = "config_schema",
-    srcs = ["etc/gatewayd_config_schema.json"],
+    srcs = ["etc/gatewayd_config.schema.json"],
     visibility = ["//visibility:public"],
 )
 
 genrule(
     name = "config_schema.generate",
     srcs = ["etc/gatewayd_config.fbs"],
-    outs = ["gatewayd_config_schema.json"],
-    cmd = """
-        $(location @flatbuffers//:flatc) --jsonschema -o $(@D) $(SRCS) && \
-        mv $(@D)/gatewayd_config.schema.json $(@)
-    """,
+    outs = ["gatewayd_config.schema.json"],
+    cmd = "$(location @flatbuffers//:flatc) --jsonschema -o $(@D) $(SRCS)",
     tools = ["@flatbuffers//:flatc"],
+    visibility = ["//visibility:public"],
 )
 
 write_source_files(
     name = "config_schema.update",
     files = {
-        "etc/gatewayd_config_schema.json": ":config_schema.generate",
+        "etc/gatewayd_config.schema.json": ":config_schema.generate",
     },
-)
-
-validate_someip_config_test(
-    name = "validate_gatewayd_config_test",
-    size = "small",
-    json = "etc/gatewayd_config.json",
-    tags = ["lint"],
 )

@@ -76,30 +76,54 @@ Finally start the benchmark on the someipd-1 container in a third shell:
 docker exec -it docker_setup-someipd-1 /home/source/bazel-bin/tests/performance_benchmarks/ipc_benchmarks
 ```
 
-### Gatewayd Config Schema Validation
-
 #### 📝 Configuration
 
-The `gatewayd` module uses a JSON file for configuration. To ensure the validity and structure of this configuration, a JSON schema is provided.
+### Gatewayd Config Schema Validation
+
+The `gatewayd` module can be configured using a flatbuffer binary file generated from a JSON file. To ensure the validity and
+structure of the configuration, a JSON schema is provided to validate the JSON configuration against to make sure the creation of the binary works without issues.
 
 #### Configuration Schema
 
 The JSON schema for the `gatewayd` configuration is located at:
 
 ```bash
-src/gatewayd/etc/gatewayd_config_schema.json
+src/gatewayd/etc/gatewayd_config.schema.json
 ```
 
 This schema defines the expected properties, data types, and constraints for a valid `gatewayd_config.json` configuration file.
 
-#### Configuration Validation
+#### Generate Configuration Binary
 
-You can validate your JSON configuration file against the schema using the `validate_json_schema_test` Bazel rule. This test will ensure that your configuration file is compatible with `gatewayd`.
-
-To add a validation test to your project, add the following to your `BUILD.bazel` file:
+To generate a someip config binary for your project, add the following to your `BUILD.bazel` file:
 
 ```bash
-load("@score_someip_gateway//:bazel/tools/someip_config.bzl", "validate_someip_config_test")
+load("@score_someip_gateway//bazel/tools:someip_config.bzl", "generate_someip_config_bin")
+generate_someip_config_bin(
+    name = "<generation_rule_name>",
+    json = "//<package>:<path_to_gatewayd_config_json>",
+    output = "etc/gatewayd_config.bin",
+)
+```
+
+The `gatewayd_config.bin` can then be generated with the following command:
+
+```bash
+bazel build //:<generation_rule_name> # if the macro has been added to root BUILD.bazel
+```
+
+#### Configuration Validation
+
+When using the `generate_someip_config_bin` macro a validation test is automatically generated to validate the schema json against the schema. This can be executed via:
+
+```bash
+bazel test //:<generation_rule_name>_test # if the macro has been added to root BUILD.bazel
+```
+
+Further tests can be added using the `validate_someip_config_test` macro. To add a custom validation test to your project, add the following to your `BUILD.bazel` file:
+
+```bash
+load("@score_someip_gateway//bazel/tools:someip_config.bzl", "validate_someip_config_test")
 validate_someip_config_test(
     name = "<validation_rule_name>",
     expect_failure = <False / True>,
@@ -108,31 +132,12 @@ validate_someip_config_test(
 )
 ```
 
-To run the validation test, execute the following command from the root of your workspace:
+To run the custom validation test, execute the following command from the root of your workspace:
 
 ```bash
-bazel test //:<validation_rule_name> # if added to root BUILD.bazel
+bazel test //:<validation_rule_name> # if the macro has been added to root BUILD.bazel
 ```
 
 If the test passes, your configuration file is valid. If it fails, the test logs will provide details about the validation errors.
-
-#### Generate Configuration Binary
-
-If validation passed successful you can add the following macro in your `BUILD.bazel` to generate a `gatewayd_config.bin`
-
-```bash
-load("@score_someip_gateway//:bazel/tools/someip_config.bzl", "generate_someip_config_bin")
-generate_someip_config_bin(
-    name = "<generation_rule_name>",
-    json = "//<project>:<gatewayd_config_json>",
-    output = "etc/gatewayd_config.bin",
-)
-```
-
-The `gatewayd_config.bin` can then be generated with the following command:
-
-```bash
-bazel build //:<generation_rule_name> # if added to root BUILD.bazel
-```
 
 On success you can retrieve the generated `gatewayd_config.bin` from `bazel-bin/`. Check the success message for the exact path.
