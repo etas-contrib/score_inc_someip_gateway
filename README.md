@@ -80,8 +80,7 @@ docker exec -it docker_setup-someipd-1 /home/source/bazel-bin/tests/performance_
 
 ### Gatewayd Config Schema Validation
 
-The `gatewayd` module can be configured using a flatbuffer binary file generated from a JSON file. To ensure the validity and
-structure of the configuration, a JSON schema is provided to validate the JSON configuration against to make sure the creation of the binary works without issues.
+The `gatewayd` module is configured using a flatbuffer binary file generated from a JSON file. We provide a JSON schema which helps when editing the JSON file, and can also be used to validate it.
 
 #### Configuration Schema
 
@@ -106,11 +105,33 @@ generate_someip_config_bin(
 )
 ```
 
-The `gatewayd_config.bin` can then be generated with the following command:
+You can then either use it as a runfile dependency for a run target:
 
 ```bash
-bazel build //:<generation_rule_name> # if the macro has been added to root BUILD.bazel
+generate_someip_config_bin(
+    name = "config_file",
+    ...
+)
+
+cc_binary(
+    name = "gatewayd",
+    srcs = ["main.cpp"],
+    data = [
+        ":config_file", # <-- like this
+    ],
+    visibility = ["//visibility:public"],
+    ...
+)
 ```
+
+Or you can manually generate the `gatewayd_config.bin` with the following command:
+
+```bash
+bazel build //:config_file # if the macro has been added to root BUILD.bazel
+```
+
+On success you can retrieve the generated `gatewayd_config.bin` from `bazel-bin/`. Check the success message for the exact path.
+
 
 #### Configuration Validation
 
@@ -119,25 +140,3 @@ When using the `generate_someip_config_bin` macro a validation test is automatic
 ```bash
 bazel test //:<generation_rule_name>_test # if the macro has been added to root BUILD.bazel
 ```
-
-Further tests can be added using the `validate_someip_config_test` macro. To add a custom validation test to your project, add the following to your `BUILD.bazel` file:
-
-```bash
-load("@score_someip_gateway//bazel/tools:someip_config.bzl", "validate_someip_config_test")
-validate_someip_config_test(
-    name = "<validation_rule_name>",
-    expect_failure = <False / True>,
-    json = "//<package>:<path_to_gatewayd_config_json>",
-    size = "small",
-)
-```
-
-To run the custom validation test, execute the following command from the root of your workspace:
-
-```bash
-bazel test //:<validation_rule_name> # if the macro has been added to root BUILD.bazel
-```
-
-If the test passes, your configuration file is valid. If it fails, the test logs will provide details about the validation errors.
-
-On success you can retrieve the generated `gatewayd_config.bin` from `bazel-bin/`. Check the success message for the exact path.
