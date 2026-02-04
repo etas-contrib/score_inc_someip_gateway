@@ -77,7 +77,7 @@ def _generate_someip_config_bin_impl(name, json, output, **kwargs):
     ]
 
     if expected_file_name != output_basename:
-        commands.append("&& mv $(@D)/gatewayd_config.bin $(@)")
+        commands.append("&& mv $(@D)/%s $(@)" % expected_file_name)
 
     native.genrule(
         name = name,
