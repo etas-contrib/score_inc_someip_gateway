@@ -24,6 +24,8 @@ cc_binary(
     name = "gatewayd",
     srcs = ["main.cpp"],
     args = [
+        "-config_file",
+        "$(rootpath :config_file)",
         "-service_instance_manifest",
         "$(rootpath etc/mw_com_config.json)",
     ],
@@ -69,8 +71,14 @@ flatbuffer_cc_library(
     srcs = ["etc/gatewayd_config.fbs"],
 )
 
+exports_files(
+    ["etc/mw_com_config.json"],
+    visibility = ["//deployment:__subpackages__"],
+)
+
 genrule(
     name = "config_file",
+    visibility = ["//deployment:__subpackages__"],
     srcs = [
         "etc/gatewayd_config.fbs",
         "etc/gatewayd_config.json",
