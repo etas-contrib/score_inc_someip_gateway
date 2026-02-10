@@ -62,7 +62,7 @@ use_repo(pip, "someip_pip")
 bazel_dep(name = "googletest", version = "1.17.0", dev_dependency = True)
 bazel_dep(name = "google_benchmark", version = "1.9.4", dev_dependency = True)
 
-bazel_dep(name = "score_itf", version = "0.1.0", repo_name = "itf")
+bazel_dep(name = "score_itf", version = "0.1.0")
 
 # ============================================================================
 # Build System Rules
@@ -70,6 +70,9 @@ bazel_dep(name = "score_itf", version = "0.1.0", repo_name = "itf")
 bazel_dep(name = "rules_cc", version = "0.2.14")
 bazel_dep(name = "rules_rust", version = "0.63.0")
 bazel_dep(name = "rules_pkg", version = "1.1.0")
+
+# Required by score_toolchains_qnx qnx_ifs rule for tar extraction
+bazel_dep(name = "tar.bzl", version = "0.7.0")
 
 # Platforms: Standard constraint values and platform definitions
 # Required for select() expressions that use @platforms//cpu:* and @platforms//os:*
@@ -79,7 +82,7 @@ bazel_dep(name = "platforms", version = "1.0.0")
 # Toolchains & Platform Configuration
 # ============================================================================
 # S-CORE Platform Definitions: Provides constraint values and platform definitions
-bazel_dep(name = "score_bazel_platforms", version = "0.0.3")
+bazel_dep(name = "score_bazel_platforms", version = "0.0.4")
 
 # ============================================================================
 # Rust Toolchain Configuration for Multi-Architecture Support
@@ -104,6 +107,92 @@ git_override(
     module_name = "score_toolchains_rust",
     commit = "6651945b4ba8e7c342d9740e9cb2d37842f56261",  # Last verified: 2025-12-11
     remote = "https://github.com/eclipse-score/toolchains_rust.git",
+)
+
+# ============================================================================
+# QNX8 Toolchain Configuration
+# ============================================================================
+bazel_dep(name = "score_bazel_cpp_toolchains", version = "0.2.2", dev_dependency = True)
+git_override(
+    module_name = "score_bazel_cpp_toolchains",
+    commit = "bef681a4bf751060d756d9ac21c2afb7981c9204",  # Last verified: 2026-02-09
+    remote = "https://github.com/etas-contrib/score_bazel_cpp_toolchains.git",
+)
+
+gcc = use_extension("@score_bazel_cpp_toolchains//extensions:gcc.bzl", "gcc", dev_dependency = True)
+gcc.toolchain(
+    name = "score_gcc_x86_64_toolchain",
+    target_cpu = "x86_64",
+    target_os = "linux",
+    use_default_package = True,
+    version = "12.2.0",
+)
+gcc.toolchain(
+    name = "score_gcc_aarch64_toolchain",
+    target_cpu = "aarch64",
+    target_os = "linux",
+    use_default_package = True,
+    version = "12.2.0",
+)
+gcc.toolchain(
+    name = "score_qcc_x86_64_toolchain",
+    sdp_version = "8.0.0",
+    target_cpu = "x86_64",
+    target_os = "qnx",
+    use_default_package = True,
+    version = "12.2.0",
+)
+gcc.toolchain(
+    name = "score_qcc_aarch64_toolchain",
+    sdp_version = "8.0.0",
+    target_cpu = "aarch64",
+    target_os = "qnx",
+    use_default_package = True,
+    version = "12.2.0",
+)
+use_repo(
+    gcc,
+    "score_gcc_aarch64_toolchain",
+    "score_gcc_x86_64_toolchain",
+    "score_qcc_aarch64_toolchain",
+    "score_qcc_x86_64_toolchain",
+)
+
+register_toolchains(
+    "@score_gcc_x86_64_toolchain//:all",
+    "@score_gcc_aarch64_toolchain//:all",
+    "@score_qcc_x86_64_toolchain//:all",
+    "@score_qcc_aarch64_toolchain//:all",
+    dev_dependency = True,
+)
+
+# ============================================================================
+# QNX IFS Image Toolchain (for building QEMU filesystem images via mkifs)
+# ============================================================================
+# We use score_toolchains_qnx ONLY for the IFS/mkifs toolchain.
+# The QCC compiler toolchain is already provided by score_bazel_cpp_toolchains above.
+bazel_dep(name = "score_toolchains_qnx", version = "0.0.7", dev_dependency = True)
+
+toolchains_qnx = use_extension(
+    "@score_toolchains_qnx//:extensions.bzl",
+    "toolchains_qnx",
+    dev_dependency = True,
+)
+toolchains_qnx.sdp(
+    url = "file:///home/bot6abt/QNX8KIT/QNX8LINUX/installation.tgz",
+    sha256 = "",
+    strip_prefix = "",
+    version = "8.0.0",
+)
+
+# Only import SDP and IFS repos — QCC compiler comes from score_bazel_cpp_toolchains
+use_repo(toolchains_qnx, "toolchains_qnx_sdp")
+use_repo(toolchains_qnx, "toolchains_qnx_ifs")
+
+# Register only the IFS filesystem toolchain (not the QCC compiler toolchain)
+register_toolchains(
+    "@toolchains_qnx_ifs//:ifs_x86_64",
+    dev_dependency = True,
 )
 
 # ============================================================================
@@ -173,7 +262,10 @@ llvm.sysroot(
 )
 use_repo(llvm, "llvm_toolchain")
 
-register_toolchains("@llvm_toolchain//:all")
+register_toolchains(
+    "@llvm_toolchain//:all",
+    dev_dependency = True,
+)
 
 # ============================================================================
 # Tooling & Development
@@ -263,6 +355,8 @@ filegroup(
     visibility = ["//visibility:public"],
 )
 """,
+    patch_strip = 1,
+    patches = ["//:third_party/boost-asio_qnx.patch"],
     sha256 = "7da75f171837577a52bbf217e17f8ea576c7c246e4594d617bfde7fafd408be5",
     strip_prefix = "boost-1.87.0",
     urls = ["https://github.com/boostorg/boost/releases/download/boost-1.87.0/boost-1.87.0-cmake.tar.xz"],
@@ -271,9 +365,11 @@ filegroup(
 http_archive(
     name = "vsomeip",
     build_file = "@//:third_party/vsomeip.BUILD.bazel",
-    integrity = "sha256-lXdZnBQt+J6gfEMKfTLBFmf9BlDJOsz+FxATmqFFzr4=",
-    strip_prefix = "vsomeip-3.6.0",
+    integrity = "sha256-hMjkJs3fQ14MVtpwupfno/UbK+rxV+1zih9632bO5Sk=",
+    patch_strip = 1,
+    patches = ["//:third_party/vsomeip_qnx8.patch"],
+    strip_prefix = "vsomeip-3.6.1",
     urls = [
-        "https://github.com/COVESA/vsomeip/archive/refs/tags/3.6.0.tar.gz",
+        "https://github.com/COVESA/vsomeip/archive/refs/tags/3.6.1.tar.gz",
     ],
 )

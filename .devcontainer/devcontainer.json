@@ -1,6 +1,11 @@
 {
-    "name": "eclipse-s-core",
-    "image": "ghcr.io/eclipse-score/devcontainer:latest",
+    "name": "eclipse-s-core-etas",
+    "build": {
+        "dockerfile": "Dockerfile",
+        "args": {
+            "USERNAME": "${localEnv:USER}"
+        }
+    },
     "customizations": {
         "vscode": {
             "extensions": [
@@ -10,5 +15,33 @@
                 "streetsidesoftware.code-spell-checker"
             ]
         }
-    }
+    },
+    "remoteUser": "${localEnv:USER}",
+    "runArgs": [
+        "--add-host=host.docker.internal:host-gateway"
+    ],
+    "mounts": [
+        {
+            "source": "/usr/local/share/ca-certificates/",
+            "target": "/usr/local/share/ca-certificates/",
+            "type": "bind"
+        },
+        {
+            "source": "/home/${localEnv:USER}/QNX8KIT/QNX8LINUX/installation.tgz",
+            "target": "/home/${localEnv:USER}/QNX8KIT/QNX8LINUX/installation.tgz",
+            "type": "bind"
+        },
+        {
+            "source": "/home/${localEnv:USER}/.qnx/license/licenses",
+            "target": "/opt/score_qnx/license/licenses",
+            "type": "bind"
+        },
+        {
+            // change to where you have the archive on your local machine, this is just an example
+            "source": "/home/${localEnv:USER}/QNX8KIT/QNX8LINUX/installation.tgz",
+            // the target will be static inside the container -> we can reference from bazel BUILD files with no NT user specific paths
+            "target": "/tmp/qnx_installer/installation.tgz",
+            "type": "bind"
+        }
+    ]
 }
