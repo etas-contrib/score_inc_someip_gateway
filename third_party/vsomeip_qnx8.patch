@@ -1,0 +1,40 @@
+diff --git a/implementation/endpoints/include/asio_tcp_socket.hpp b/implementation/endpoints/include/asio_tcp_socket.hpp
+index 0b577f95..6615d6f1 100644
+--- a/implementation/endpoints/include/asio_tcp_socket.hpp
++++ b/implementation/endpoints/include/asio_tcp_socket.hpp
+@@ -6,6 +6,13 @@
+ #ifndef VSOMEIP_V3_ASIO_TCP_SOCKET_HPP_
+ #define VSOMEIP_V3_ASIO_TCP_SOCKET_HPP_
+ 
++#ifdef __QNX__
++#include <sys/socket.h>
++#ifndef SO_BINDTODEVICE
++#define SO_BINDTODEVICE 0x0800
++#endif
++#endif
++
+ #include "tcp_socket.hpp"
+ 
+ #include <boost/asio/write.hpp>
+diff --git a/implementation/utility/src/wrappers_qnx.cpp b/implementation/utility/src/wrappers_qnx.cpp
+index 77c261cc..d1a925b8 100644
+--- a/implementation/utility/src/wrappers_qnx.cpp
++++ b/implementation/utility/src/wrappers_qnx.cpp
+@@ -5,6 +5,8 @@
+ 
+ #ifdef __QNX__
+ 
++// QNX7 SDP specific headers - sys/sockmsg.h does not exist in QNX8
++#if defined(__QNX__) && (__QNX__ < 800)
+ #include <sys/socket.h>
+ #include <sys/types.h>
+ 
+@@ -151,4 +153,8 @@ int __wrap_open(const char* pathname, int flags, mode_t mode) {
+ }
+ }
+ 
++#else  // QNX8+ - no custom wrappers needed
++// QNX8 has standard POSIX support (accept4, etc)
++#endif  // QNX version check
++
+ #endif

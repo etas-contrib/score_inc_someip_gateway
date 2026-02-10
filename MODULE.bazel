@@ -79,7 +79,7 @@ bazel_dep(name = "platforms", version = "1.0.0")
 # Toolchains & Platform Configuration
 # ============================================================================
 # S-CORE Platform Definitions: Provides constraint values and platform definitions
-bazel_dep(name = "score_bazel_platforms", version = "0.0.3")
+bazel_dep(name = "score_bazel_platforms", version = "0.0.4")
 
 # ============================================================================
 # Rust Toolchain Configuration for Multi-Architecture Support
@@ -105,6 +105,35 @@ git_override(
     commit = "6651945b4ba8e7c342d9740e9cb2d37842f56261",  # Last verified: 2025-12-11
     remote = "https://github.com/eclipse-score/toolchains_rust.git",
 )
+
+# ============================================================================
+# QNX8 Toolchain Configuration
+# ============================================================================
+bazel_dep(name = "score_bazel_cpp_toolchains", version = "0.2.2", dev_dependency = True)
+
+gcc = use_extension("@score_bazel_cpp_toolchains//extensions:gcc.bzl", "gcc", dev_dependency = True)
+
+# Custom QNX SDP package (no authentication required)
+# TODO: Update the URL to point to your locally downloaded QNX SDP
+gcc.sdp(
+    name = "score_gcc_qnx_toolchain_pkg",
+    build_file = "@score_bazel_cpp_toolchains//packages/qnx/aarch64/sdp/8.0.0:sdp.BUILD",
+    sha256 = "f2e0cb21c6baddbcb65f6a70610ce498e7685de8ea2e0f1648f01b327f6bac63",
+    strip_prefix = "installation",
+    url = "file:///home/wbm1lo/score/score_inc_someip_gateway/installation.tgz",  # Local path
+    # url = "file:///workspaces/score_inc_someip_gateway/installation.tgz",  # devcontainer
+)
+gcc.toolchain(
+    name = "score_gcc_qnx_toolchain",
+    sdp_to_link = "score_gcc_qnx_toolchain_pkg",  # Link to custom package
+    sdp_version = "8.0.0",
+    target_cpu = "aarch64",
+    target_os = "qnx",
+    version = "12.2.0",
+)
+use_repo(gcc, "score_gcc_qnx_toolchain")
+
+register_toolchains("@score_gcc_qnx_toolchain//:all")
 
 # ============================================================================
 # Optional Toolchain Dependencies
@@ -281,6 +310,8 @@ filegroup(
     visibility = ["//visibility:public"],
 )
 """,
+    patch_strip = 1,
+    patches = ["//:third_party/boost-asio_qnx.patch"],
     sha256 = "7da75f171837577a52bbf217e17f8ea576c7c246e4594d617bfde7fafd408be5",
     strip_prefix = "boost-1.87.0",
     urls = ["https://github.com/boostorg/boost/releases/download/boost-1.87.0/boost-1.87.0-cmake.tar.xz"],
@@ -290,6 +321,8 @@ http_archive(
     name = "vsomeip",
     build_file = "@//:third_party/vsomeip.BUILD.bazel",
     integrity = "sha256-lXdZnBQt+J6gfEMKfTLBFmf9BlDJOsz+FxATmqFFzr4=",
+    patch_strip = 1,
+    patches = ["//:third_party/vsomeip_qnx8.patch"],
     strip_prefix = "vsomeip-3.6.0",
     urls = [
         "https://github.com/COVESA/vsomeip/archive/refs/tags/3.6.0.tar.gz",
