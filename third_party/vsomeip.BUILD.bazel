@@ -30,7 +30,7 @@ filegroup(
 # ============================================================================
 cmake(
     name = "boost_x86_64",
-    build_args = ["-j"],
+    build_args = ["-j8"],
     cache_entries = {
         "BOOST_INCLUDE_LIBRARIES": "algorithm;array;asio;exception;filesystem;foreach;functional;icl;optional;property_tree;shared_ptr;stacktrace;system;thread;utility",
         "CMAKE_POSITION_INDEPENDENT_CODE": "ON",
@@ -60,7 +60,7 @@ cmake(
 # ============================================================================
 cmake(
     name = "boost_aarch64",
-    build_args = ["-j"],
+    build_args = ["-j8"],
     cache_entries = {
         "BOOST_INCLUDE_LIBRARIES": "algorithm;array;asio;exception;filesystem;foreach;functional;icl;optional;property_tree;shared_ptr;stacktrace;system;thread;utility",
         "CMAKE_POSITION_INDEPENDENT_CODE": "ON",
@@ -101,7 +101,7 @@ alias(
 # ============================================================================
 cmake(
     name = "vsomeip_x86_64_linux",
-    build_args = ["-j"],
+    build_args = ["-j8"],
     cache_entries = {
         "ENABLE_SIGNAL_HANDLING": "ON",
     },
@@ -120,7 +120,7 @@ cmake(
 # ============================================================================
 cmake(
     name = "vsomeip_x86_64_qnx",
-    build_args = ["-j"],
+    build_args = ["-j8"],
     cache_entries = {
         "BOOST_ROOT": "$$EXT_BUILD_DEPS/boost",
         "Boost_NO_SYSTEM_PATHS": "ON",
@@ -150,7 +150,7 @@ cmake(
 # ============================================================================
 cmake(
     name = "vsomeip_aarch64_linux",
-    build_args = ["-j"],
+    build_args = ["-j8"],
     cache_entries = {
         "ENABLE_SIGNAL_HANDLING": "ON",
     },
@@ -169,7 +169,7 @@ cmake(
 # ============================================================================
 cmake(
     name = "vsomeip_aarch64_qnx",
-    build_args = ["-j"],
+    build_args = ["-j8"],
     cache_entries = {
         "BOOST_ROOT": "$$EXT_BUILD_DEPS/boost",
         "Boost_NO_SYSTEM_PATHS": "ON",

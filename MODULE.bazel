@@ -62,7 +62,7 @@ use_repo(pip, "someip_pip")
 bazel_dep(name = "googletest", version = "1.17.0", dev_dependency = True)
 bazel_dep(name = "google_benchmark", version = "1.9.4", dev_dependency = True)
 
-bazel_dep(name = "score_itf", version = "0.1.0", repo_name = "itf")
+bazel_dep(name = "score_itf", version = "0.1.0")
 
 # ============================================================================
 # Build System Rules
@@ -70,6 +70,9 @@ bazel_dep(name = "score_itf", version = "0.1.0", repo_name = "itf")
 bazel_dep(name = "rules_cc", version = "0.2.14")
 bazel_dep(name = "rules_rust", version = "0.63.0")
 bazel_dep(name = "rules_pkg", version = "1.1.0")
+
+# Required by score_toolchains_qnx qnx_ifs rule for tar extraction
+bazel_dep(name = "tar.bzl", version = "0.7.0")
 
 # Platforms: Standard constraint values and platform definitions
 # Required for select() expressions that use @platforms//cpu:* and @platforms//os:*
@@ -164,6 +167,35 @@ register_toolchains(
 )
 
 # ============================================================================
+# QNX IFS Image Toolchain (for building QEMU filesystem images via mkifs)
+# ============================================================================
+# We use score_toolchains_qnx ONLY for the IFS/mkifs toolchain.
+# The QCC compiler toolchain is already provided by score_bazel_cpp_toolchains above.
+bazel_dep(name = "score_toolchains_qnx", version = "0.0.7", dev_dependency = True)
+
+toolchains_qnx = use_extension(
+    "@score_toolchains_qnx//:extensions.bzl",
+    "toolchains_qnx",
+    dev_dependency = True,
+)
+toolchains_qnx.sdp(
+    url = "file:///home/bot6abt/QNX8KIT/QNX8LINUX/installation.tgz",
+    sha256 = "",
+    strip_prefix = "",
+    version = "8.0.0",
+)
+
+# Only import SDP and IFS repos — QCC compiler comes from score_bazel_cpp_toolchains
+use_repo(toolchains_qnx, "toolchains_qnx_sdp")
+use_repo(toolchains_qnx, "toolchains_qnx_ifs")
+
+# Register only the IFS filesystem toolchain (not the QCC compiler toolchain)
+register_toolchains(
+    "@toolchains_qnx_ifs//:ifs_x86_64",
+    dev_dependency = True,
+)
+
+# ============================================================================
 # Optional Toolchain Dependencies
 # ============================================================================
 # We provide a local stub to satisfy module resolution without adding QNX support.
@@ -234,24 +266,6 @@ register_toolchains(
     "@llvm_toolchain//:all",
     dev_dependency = True,
 )
-
-
-
-# Configure target toolchain for QNX build.
-bazel_dep(name = "score_toolchains_qnx", version = "0.0.5")
-toolchains_qnx = use_extension("@score_toolchains_qnx//:extensions.bzl", "toolchains_qnx")
-toolchains_qnx.sdp(
-    sha256 = "f2e0cb21c6baddbcb65f6a70610ce498e7685de8ea2e0f1648f01b327f6bac63",
-    strip_prefix = "installation",
-    url = "file:///tmp/qnx_installer/installation.tgz",
-)
-use_repo(toolchains_qnx, "toolchains_qnx_sdp")
-use_repo(toolchains_qnx, "toolchains_qnx_qcc")
-use_repo(toolchains_qnx, "toolchains_qnx_ifs")
-
-register_toolchains("@toolchains_qnx_qcc//:qcc_x86_64")
-register_toolchains("@toolchains_qnx_ifs//:ifs_x86_64")
-
 
 # ============================================================================
 # Tooling & Development
