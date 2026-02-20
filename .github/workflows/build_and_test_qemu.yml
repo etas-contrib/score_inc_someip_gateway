@@ -50,7 +50,6 @@ jobs:
         uses: actions/checkout@v4.2.2
       - run: df -h
       - name: Bazel build targets
-        with:
-          bazel-target: "build //deployment/qemu:run_qemu --config=x86_64-qnx"
+        run: bazel test //tests/UT:test_ut --test_output=all  --config=x86_64-qnx
       - run: df -h
         if: always()
