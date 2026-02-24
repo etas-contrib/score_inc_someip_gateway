@@ -12,26 +12,39 @@
 # *******************************************************************************
 
 # =============================================================================
-# Simple Deployment Packages
-#
 # Creates platform-specific deployment packages (tar.gz) containing:
 # - Executables (bins with all runtime dependencies)
 # - Configuration files (.json)
 #
-# Usage:
-#   # Build arm64 packages
-#   bazel build //deployment:someipd_tar --config=arm64-linux
-#   bazel build //deployment:gatewayd_tar --config=arm64-linux
-#   bazel build //deployment:benchmarks_tar --config=arm64-linux
+# Available Platform Configurations (see .bazelrc):
+#   - x86_64-linux:  x86_64 architecture (GNU/Linux)
+#   - aarch64-linux: aarch64 architecture (GNU/Linux)
+#   - x86_64-qnx:    x86_64 architecture (QNX8)
+#   - aarch64-qnx:   aarch64 architecture (QNX8)
 #
-#   # Build x86_64 packages (default)
+# Usage:
+#   # Build for x86_64 Linux (default)
 #   bazel build //deployment:someipd_tar
 #   bazel build //deployment:gatewayd_tar
 #   bazel build //deployment:benchmarks_tar
 #
-#   # Build all
-#   bazel build //deployment:all_tars --config=arm64-linux
-#   bazel build //deployment:all_tars
+#   # Build for aarch64 Linux
+#   bazel build //deployment:someipd_tar --config=aarch64-linux
+#   bazel build //deployment:gatewayd_tar --config=aarch64-linux
+#   bazel build //deployment:benchmarks_tar --config=aarch64-linux
+#
+#   # Build for x86_64 QNX8
+#   bazel build //deployment:someipd_tar --config=x86_64-qnx
+#   bazel build //deployment:gatewayd_tar --config=x86_64-qnx
+#   bazel build //deployment:benchmarks_tar --config=x86_64-qnx
+#
+#   # Build for aarch64 QNX8
+#   bazel build //deployment:someipd_tar --config=aarch64-qnx
+#   bazel build //deployment:gatewayd_tar --config=aarch64-qnx
+#   bazel build //deployment:benchmarks_tar --config=aarch64-qnx
+#
+#   # Build all targets for a specific config
+#   bazel build //deployment:all_tars --config=aarch64-linux
 # =============================================================================
 
 load("@rules_pkg//pkg:tar.bzl", "pkg_tar")

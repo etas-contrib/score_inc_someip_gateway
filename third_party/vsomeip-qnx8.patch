@@ -1,3 +1,16 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 770ef56..128ebf9 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -416,7 +416,7 @@ set(EXAMPLE_CONFIG_FILES
+ # Configuration parameters
+ ################################################################################
+ if(${CMAKE_SYSTEM_NAME} MATCHES "QNX")
+-    set (VSOMEIP_BASE_PATH "/var")
++    set (VSOMEIP_BASE_PATH "/var/run")
+ else()
+     set (VSOMEIP_BASE_PATH "/tmp")
+ endif()
 diff --git a/implementation/endpoints/include/asio_tcp_socket.hpp b/implementation/endpoints/include/asio_tcp_socket.hpp
 index 22ec4db1..e5783fa2 100644
 --- a/implementation/endpoints/include/asio_tcp_socket.hpp
@@ -5,7 +18,7 @@ index 22ec4db1..e5783fa2 100644
 @@ -6,6 +6,13 @@
  #ifndef VSOMEIP_V3_ASIO_TCP_SOCKET_HPP_
  #define VSOMEIP_V3_ASIO_TCP_SOCKET_HPP_
- 
+
 +#ifdef __QNX__
 +#include <sys/socket.h>
 +#ifndef SO_BINDTODEVICE
@@ -14,16 +27,16 @@ index 22ec4db1..e5783fa2 100644
 +#endif
 +
  #include "tcp_socket.hpp"
- 
+
  #include <boost/asio/write.hpp>
 diff --git a/implementation/utility/src/wrappers_qnx.cpp b/implementation/utility/src/wrappers_qnx.cpp
 index 77c261cc..6e5a71b7 100644
 --- a/implementation/utility/src/wrappers_qnx.cpp
 +++ b/implementation/utility/src/wrappers_qnx.cpp
 @@ -5,10 +5,12 @@
- 
+
  #ifdef __QNX__
- 
+
 -#include <sys/socket.h>
  #include <sys/types.h>
 -
@@ -40,6 +53,20 @@ index 77c261cc..6e5a71b7 100644
      return __accept(s, addr, addrlen, ACCEPT4, flags);
  }
 +#endif  // QNX8 has standard POSIX support (accept4, etc)
- 
+
  /*
   * These definitions MUST remain in the global namespace.
+diff --git a/implementation/routing/src/routing_manager_impl.cpp b/implementation/routing/src/routing_manager_impl.cpp
+--- a/implementation/routing/src/routing_manager_impl.cpp
++++ b/implementation/routing/src/routing_manager_impl.cpp
+@@ -3453,6 +3453,10 @@ void routing_manager_impl::on_net_interface_or_route_state_changed(bool _is_inte
+ void routing_manager_impl::start_ip_routing() {
+ #if defined(_WIN32) || defined(__QNX__)
+     if_state_running_ = true;
++    sd_route_set_ = true;
++    // QNX: Process any pending service offers now that routing is ready
++    // (On Linux, this is done via on_net_interface_or_route_state_changed)
++    init_pending_services();
+ #endif
+
+     if (routing_ready_handler_) {
