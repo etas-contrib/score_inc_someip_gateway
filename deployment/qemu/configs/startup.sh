@@ -1,4 +1,5 @@
 #!/bin/sh
+set -e
 # *******************************************************************************
 # Copyright (c) 2026 Contributors to the Eclipse Foundation
 #
@@ -22,7 +23,7 @@
 export PATH=/proc/boot:/bin:/usr/bin:/sbin:/usr/sbin:$PATH
 
 echo "---> Starting slogger2"
-slogger2 -s 4096                       # Start system logger with 4KB buffer size for log messages
+slogger2 -s 262144                     # Start system logger with 256KB buffer size for log messages
 waitfor /dev/slog                      # Wait for system log device to become available
 
 echo "---> Starting PCI Services"
@@ -47,7 +48,6 @@ waitfor /dev/ram0                       # Wait for RAM disk device to be ready
 
 echo "---> mounting ram disk"
 mkqnx6fs -q /dev/ram0                   # Create QNX6 filesystem on RAM disk (quiet mode)
-waitfor /dev/ram0                       # Wait for filesystem creation to complete
 mount -w /dev/ram0 /tmp_discovery        # Mount writable RAM disk at /tmp_discovery (required by LoLa)
 
 echo "---> Setting up writable /var for vsomeip"
