@@ -34,7 +34,7 @@
 
 
 #WORK IN PROGRESS - initial version with bridge setup and TAP device creation for ITF compatibility.
-#USE IT at  your own risk
+#USE IT at your own risk
 
 set -euo pipefail
 
@@ -151,7 +151,14 @@ setup_bridge() {
     done
 
     # allow tcpdump to capture on bridge interfaces without running as root
-    setcap cap_net_raw,cap_net_admin=eip $(which tcpdump)
+    local tcpdump_path
+    tcpdump_path=$(which tcpdump 2>/dev/null || true)
+    if [[ -n "${tcpdump_path}" ]]; then
+        setcap cap_net_raw,cap_net_admin=eip "${tcpdump_path}"
+        echo "[INFO] Set capture capabilities on ${tcpdump_path}"
+    else
+        echo "[WARNING] tcpdump not found — skipping setcap"
+    fi
 
     # Allow traffic forwarding between bridge interfaces (eg qemu1 can ping qemu2)
     iptables -I FORWARD -i "${BRIDGE_NAME}" -o "${BRIDGE_NAME}" -j ACCEPT
@@ -180,7 +187,11 @@ teardown_bridge() {
     iptables -D FORWARD -i "${BRIDGE_NAME}" -o "${BRIDGE_NAME}" -j ACCEPT
 
     # remove tcpdump sudo permissions to capture on the bridge interfaces
-    sudo setcap -r $(which tcpdump)
+    local tcpdump_path
+    tcpdump_path=$(which tcpdump 2>/dev/null || true)
+    if [[ -n "${tcpdump_path}" ]]; then
+        sudo setcap -r "${tcpdump_path}" 2>/dev/null || true
+    fi
 
     # Remove bridge
     if ip link show "${BRIDGE_NAME}" &>/dev/null; then
