@@ -1,15 +1,14 @@
 Port 22
-Protocol 2
 HostKey /var/ssh/ssh_host_rsa_key
 
 PasswordAuthentication yes
-PermitEmptyPasswords yes
-PubkeyAuthentication no
-PermitRootLogin yes
-PermitUserEnvironment yes
+PermitEmptyPasswords no
+PubkeyAuthentication yes
+PermitRootLogin without-password
+PermitUserEnvironment no
 PidFile none
-StrictModes no
+StrictModes yes
 UseDNS no
-LogLevel DEBUG
+LogLevel INFO
 
 Subsystem sftp /usr/lib/ssh/sftp-server
