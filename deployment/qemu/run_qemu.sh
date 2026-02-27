@@ -34,7 +34,7 @@ BRIDGE_NAME="virbr0"
 
 # Calculate guest IP and MAC based on instance ID
 GUEST_IP="192.168.87.$((1 + INSTANCE_ID))"  # Instance 1: .2, Instance 2: .3
-GUEST_MAC="52:54:00:12:34:0${INSTANCE_ID}"
+GUEST_MAC=$(printf "52:54:00:12:34:%02x" "${INSTANCE_ID}")  # Hex-formatted last octet
 
 echo "========================================"
 echo "  QNX SOME/IP Gateway — QEMU (x86_64)"
