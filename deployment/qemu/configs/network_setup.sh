@@ -1,4 +1,5 @@
 #!/bin/sh
+set -e
 # *******************************************************************************
 # Copyright (c) 2026 Contributors to the Eclipse Foundation
 #
@@ -33,7 +34,6 @@
 
 # Detect instance ID from MAC address
 # QEMU sets unique MACs: Instance 1: 52:54:00:12:34:01, Instance 2: 52:54:00:12:34:02
-INSTANCE_ID=1
 
 echo "---> Starting Networking"
 io-sock -m phy -m pci -d vtnet_pci    # Start network stack with PHY and PCI modules, load VirtIO network driver
@@ -61,6 +61,12 @@ case "$VTNET0_MAC" in
     *:01) INSTANCE_ID=1 ;;
     *:02) INSTANCE_ID=2 ;;
     *:03) INSTANCE_ID=3 ;;
+    *)
+        # Parse last MAC octet as hex for instance IDs > 3
+        LAST_OCTET=$(echo "$VTNET0_MAC" | awk -F: '{print $6}')
+        INSTANCE_ID=$(printf "%d" "0x${LAST_OCTET}" 2>/dev/null || echo 1)
+        echo "---> WARNING: Non-standard MAC suffix :${LAST_OCTET}, derived instance ${INSTANCE_ID}"
+        ;;
 esac
 echo "---> Detected instance ${INSTANCE_ID} from MAC: ${VTNET0_MAC}"
 
