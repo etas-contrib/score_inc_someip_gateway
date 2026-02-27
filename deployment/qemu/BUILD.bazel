@@ -34,7 +34,7 @@ exports_files(
 )
 
 # ---------------------------------------------------------------------------
-# Package all gateway binaries + configs into a single tar for IFS inclusion
+# Package all gateway binaries into a tar for IFS inclusion (/usr/bin)
 # ---------------------------------------------------------------------------
 pkg_tar(
     name = "gateway_binaries_pkg",
@@ -42,6 +42,17 @@ pkg_tar(
         "//src/gatewayd",
         "//src/someipd",
         "//tests/integration/sample_client",
+    ],
+    include_runfiles = True,
+    package_dir = "/",
+)
+
+# ---------------------------------------------------------------------------
+# Package shared libraries (vsomeip) separately for /usr/lib in the IFS
+# ---------------------------------------------------------------------------
+pkg_tar(
+    name = "gateway_libs_pkg",
+    srcs = [
         "@vsomeip",
     ],
     include_runfiles = True,
@@ -121,6 +132,7 @@ qnx_ifs(
     tars = {
         "GATEWAY_BINS": ":gateway_binaries_pkg",
         "GATEWAY_CONFIGS": ":gateway_configs_pkg",
+        "GATEWAY_LIBS": ":gateway_libs_pkg",
         "SOMEIPD_CONFIGS": ":someipd_configs_pkg",
         "SAMPLE_CLIENT_CONFIGS": ":sample_client_configs_pkg",
         "TEST_BINS": ":test_binaries_pkg",
