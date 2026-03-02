@@ -16,7 +16,7 @@ build --java_language_version=17
 build --tool_java_language_version=17
 build --java_runtime_version=remotejdk_17
 build --tool_java_runtime_version=remotejdk_17
-
+common --action_env=QNXLM_LICENSE_FILE="6287@rb-lic-qnxlm.de.bosch.com" #to be removed
 # ============================================================================
 # Multi-Architecture Build Configuration
 # ============================================================================
