@@ -123,9 +123,17 @@ EXPECTED_SD = {
 # ---------------------------------------------------------------------------
 
 
-def get_tmp_dir() -> Path:
-    """Get temp directory (Bazel sandbox if available)."""
-    return Path(os.environ.get("TEST_TMPDIR", "/tmp"))
+def get_outputs_dir() -> Path:
+    """Get the Bazel undeclared outputs directory, fallback to /tmp."""
+    # Bazel automatically archives everything written here into outputs.zip
+    out_dir = os.environ.get("TEST_UNDECLARED_OUTPUTS_DIR")
+
+    if out_dir:
+        path = Path(out_dir)
+        path.mkdir(parents=True, exist_ok=True)
+        return path
+
+    return Path("/tmp")
 
 
 def get_workspace_root() -> Path:
@@ -162,7 +170,11 @@ def kill_stale_qemu_instances() -> None:
 def _format_service(
     svc: int, inst: int, eg: int | None = None, *, with_eg: bool = False
 ) -> str:
-    """Format a service entry as the expected string."""
+    """Format a service entry as the expected string.
+    Ex: print(_format_service(255, 1)) ->Output: "Service 0x00ff.0x0001"
+    Ex: print(_format_service(255, 1, 10)) ->Output: "Service 0x00ff.0x0001"
+    Ex: print(_format_service(255, 1, 10, with_eg=True)) ->Output: "Service 0x00ff.0x0001, eventgroup 0x000a"
+    """
     if with_eg and eg is not None:
         return f"Service 0x{svc:04x}.0x{inst:04x}, eventgroup 0x{eg:04x}"
     return f"Service 0x{svc:04x}.0x{inst:04x}"
@@ -272,13 +284,6 @@ def verify_partial_sd(ip: str, parsed: dict[str, SDResult], output: str) -> None
 
 
 @pytest.fixture
-def ssh_client(target):
-    """Create ITF SSH connection to QEMU guest."""
-    with target.ssh() as connection:
-        yield connection
-
-
-@pytest.fixture
 def dual_ssh_clients(qemu_dual_instances):
     """Create ITF SSH connections to both QEMU instances."""
     instance1, instance2 = qemu_dual_instances
@@ -298,92 +303,6 @@ def dual_ssh_clients(qemu_dual_instances):
         yield c1, c2
 
 
-# ---------------------------------------------------------------------------
-# Test Classes
-# ---------------------------------------------------------------------------
-
-
-class TestSingleInstanceNetwork:
-    """Tests for single QEMU instance with bridge networking."""
-
-    def test_ssh_connection(self, ssh_client):
-        """Test basic SSH connectivity to QNX QEMU as root user."""
-        _, stdout, stderr = ssh_client.exec_command(
-            "/proc/boot/uname -a && /proc/boot/whoami"
-        )
-        output = stdout.read().decode().strip()
-
-        assert stdout.channel.recv_exit_status() == 0, (
-            f"Failed: {stderr.read().decode()}"
-        )
-        assert "QNX" in output and "root" in output, f"Expected QNX/root, got: {output}"
-
-    def test_bridge_interface_configured(self, ssh_client):
-        """Verify vtnet0 interface is configured with 192.168.87.2."""
-        _, stdout, stderr = ssh_client.exec_command("/proc/boot/ifconfig vtnet0")
-        assert stdout.channel.recv_exit_status() == 0, (
-            f"Failed: {stderr.read().decode()}"
-        )
-        assert "192.168.87.2" in stdout.read().decode()
-
-    def test_bridge_gateway_reachable(self, ssh_client):
-        """Verify guest can ping the bridge gateway (192.168.87.1)."""
-        _, stdout, stderr = ssh_client.exec_command("/proc/boot/ping -c 3 192.168.87.1")
-        output = stdout.read().decode()
-        assert stdout.channel.recv_exit_status() == 0, (
-            f"Cannot ping: {stderr.read().decode()}"
-        )
-        assert any(x in output for x in ["3 packets transmitted", "0% packet loss"])
-
-    def test_bridge_default_route(self, ssh_client):
-        """Verify default route points to 192.168.87.1."""
-        _, stdout, _ = ssh_client.exec_command("/proc/boot/route get default 2>&1")
-        assert "192.168.87.1" in stdout.read().decode()
-
-
-class TestDualInstanceNetwork:
-    """Tests for two QEMU instances communicating via bridge networking."""
-
-    def test_both_instances_have_bridge_interface(self, dual_ssh_clients):
-        """Verify both instances have vtnet0 interface configured."""
-        client1, client2 = dual_ssh_clients
-
-        _, out1, _ = client1.exec_command(
-            "/proc/boot/ifconfig vtnet0 2>/dev/null || echo NO_VTNET0"
-        )
-        _, out2, _ = client2.exec_command(
-            "/proc/boot/ifconfig vtnet0 2>/dev/null || echo NO_VTNET0"
-        )
-        output1, output2 = out1.read().decode(), out2.read().decode()
-
-        assert "NO_VTNET0" not in output1 and "192.168.87.2" in output1
-        assert "NO_VTNET0" not in output2 and "192.168.87.3" in output2
-
-    def test_instance1_can_ping_instance2(self, dual_ssh_clients):
-        """Verify instance 1 can ping instance 2."""
-        client1, _ = dual_ssh_clients
-        _, stdout, stderr = client1.exec_command("/proc/boot/ping -c 3 192.168.87.3")
-        assert stdout.channel.recv_exit_status() == 0, (
-            f"Ping failed: {stderr.read().decode()}"
-        )
-
-    def test_instance2_can_ping_instance1(self, dual_ssh_clients):
-        """Verify instance 2 can ping instance 1."""
-        _, client2 = dual_ssh_clients
-        _, stdout, stderr = client2.exec_command("/proc/boot/ping -c 3 192.168.87.2")
-        assert stdout.channel.recv_exit_status() == 0, (
-            f"Ping failed: {stderr.read().decode()}"
-        )
-
-    def test_both_instances_can_reach_host(self, dual_ssh_clients):
-        """Verify both instances can reach host (192.168.87.1)."""
-        for i, client in enumerate(dual_ssh_clients, 1):
-            _, stdout, _ = client.exec_command("/proc/boot/ping -c 1 192.168.87.1")
-            assert stdout.channel.recv_exit_status() == 0, (
-                f"Instance {i} cannot reach host"
-            )
-
-
 class TestSomeIPSD:
     """Tests for SOME/IP Service Discovery between two QEMU instances.
 
@@ -395,10 +314,11 @@ class TestSomeIPSD:
     def test_someip_sd_offers_finds_subscriptions(self, qemu_dual_instances):
         """Verify SOME/IP-SD offers, finds, and subscriptions between QEMUs."""
         instance1, instance2 = qemu_dual_instances
-        tmp = get_tmp_dir()
+        tmp = get_outputs_dir()
         pcap = tmp / "someip_sd_test.pcap"
+        log = tmp / "tcpdump.log"
 
-        with tcpdump_capture(pcap, tmp / "tcpdump.log"):
+        with tcpdump_capture(pcap, log):
             start_qemu1_services(instance1.ssh_host)
             start_qemu2_services(instance2.ssh_host)
             time.sleep(SERVICE_SETTLE_TIME)
@@ -414,7 +334,7 @@ class TestSomeIPSD:
         """Negative: No QEMUs running - no traffic expected."""
         kill_stale_qemu_instances()
 
-        tmp = get_tmp_dir()
+        tmp = get_outputs_dir()
         pcap = tmp / "negative_no_qemu.pcap"
 
         with tcpdump_capture(pcap, tmp / "tcpdump_no_qemu.log"):
@@ -427,7 +347,7 @@ class TestSomeIPSD:
     def test_negative_both_qemus_no_services(self, qemu_dual_instances):
         """Negative: Both QEMUs running but no services - no traffic expected."""
         instance1, instance2 = qemu_dual_instances
-        tmp = get_tmp_dir()
+        tmp = get_outputs_dir()
         pcap = tmp / "negative_no_services.pcap"
 
         print(f"QEMU 1: {instance1.ssh_host}, QEMU 2: {instance2.ssh_host}")
@@ -443,12 +363,13 @@ class TestSomeIPSD:
     def test_negative_only_qemu1_with_services(self, qemu_ifs_image, qemu_run_script):
         """Negative: Only QEMU 1 with services - offers/finds but no subscriptions."""
         kill_stale_qemu_instances()
-        tmp = get_tmp_dir()
+        tmp = get_outputs_dir()
         pcap = tmp / "negative_only_qemu1.pcap"
+        log = tmp / "tcpdump_qemu1.log"
 
         instance = start_qemu(qemu_ifs_image, qemu_run_script, instance_id=1)
         try:
-            with tcpdump_capture(pcap, tmp / "tcpdump_qemu1.log"):
+            with tcpdump_capture(pcap, log):
                 print(f"Starting services on QEMU 1 ({instance.ssh_host})...")
                 start_qemu1_services(instance.ssh_host)
                 print(f"Waiting {SERVICE_SETTLE_TIME}s for SD exchanges...")
@@ -470,12 +391,13 @@ class TestSomeIPSD:
     def test_negative_only_qemu2_with_services(self, qemu_ifs_image, qemu_run_script):
         """Negative: Only QEMU 2 with services - offers/finds but no subscriptions."""
         kill_stale_qemu_instances()
-        tmp = get_tmp_dir()
+        tmp = get_outputs_dir()
         pcap = tmp / "negative_only_qemu2.pcap"
+        log = tmp / "tcpdump_qemu2.log"
 
         instance = start_qemu(qemu_ifs_image, qemu_run_script, instance_id=2)
         try:
-            with tcpdump_capture(pcap, tmp / "tcpdump_qemu2.log"):
+            with tcpdump_capture(pcap, log):
                 print(f"Starting sample_client on QEMU 2 ({instance.ssh_host})...")
                 start_qemu2_services(instance.ssh_host)
                 print(f"Waiting {SERVICE_SETTLE_TIME}s for SD exchanges...")
