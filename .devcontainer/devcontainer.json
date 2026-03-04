@@ -1,9 +1,12 @@
 {
     "name": "eclipse-s-core",
     "build": {
-        "dockerfile": "Dockerfile"
+        "dockerfile": "Dockerfile",
+        "args": {
+            "USERNAME": "${localEnv:USER}"
+        }
     },
-    "remoteUser": "bot6abt",
+    "remoteUser": "${localEnv:USER}",
     "runArgs": [
         "--privileged",
         "--add-host=host.docker.internal:host-gateway",
