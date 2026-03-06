@@ -11,6 +11,9 @@
 # SPDX-License-Identifier: Apache-2.0
 # *******************************************************************************
 
+# TEMPORARY: Multi-instance QEMU management utilities.
+# This module will be replaced when ITF natively supports multi-instance QEMU.
+# See: https://github.com/eclipse-score/itf/issues/59
 
 import logging
 import os

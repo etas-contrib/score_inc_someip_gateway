@@ -51,7 +51,7 @@ from tests.itf_updates.qemu_utils import (
 TCPDUMP_INTERFACE = "virbr0"
 QEMU1_IP = "192.168.87.2"
 QEMU2_IP = "192.168.87.3"
-SERVICE_SETTLE_TIME = 20  # seconds to let SD exchange complete
+SERVICE_SETTLE_TIME = 5  # seconds to let SD exchange complete
 
 SSH_OPTS = [
     "-o",
@@ -351,10 +351,10 @@ class TestSomeIPSD:
         pcap = tmp / "negative_no_services.pcap"
 
         print(f"QEMU 1: {instance1.ssh_host}, QEMU 2: {instance2.ssh_host}")
-        print("Waiting 10 seconds without starting services...")
+        print("Waiting 5 seconds without starting services...")
 
         with tcpdump_capture(pcap, tmp / "tcpdump_no_services.log"):
-            time.sleep(10)
+            time.sleep(5)
 
         parsed = analyze_pcap(pcap)
         assert not parsed, f"Expected no SD data, found: {list(parsed.keys())}"

@@ -41,40 +41,38 @@ echo "---> Starting fsevmgr"
 fsevmgr                                 # Start file system event manager for file notifications
 waitfor /dev/fsnotify                   # Wait for filesystem notification device
 
-echo "---> Starting devb-ram"
-devb-ram ram capacity=1 blk ramdisk=10m,cache=512k,vnode=256 2>/dev/null  # Create 10MB RAM disk with 512KB cache
-waitfor /dev/ram0                       # Wait for RAM disk device to be ready
+#!/bin/sh
 
-echo "---> mounting ram disk"
-mkqnx6fs -q /dev/ram0                   # Create QNX6 filesystem on RAM disk (quiet mode)
-waitfor /dev/ram0                       # Wait for filesystem creation to complete
-mount -w /dev/ram0 /tmp_discovery        # Mount writable RAM disk at /tmp_discovery (required by LoLa)
+# Usage: setup_ramdisk <device> <mount_point> <size> <cache> <vnodes> <capacity_id>
+setup_ramdisk() {
+    devb-ram ram capacity=$6 blk ramdisk=$3,cache=$4,vnode=$5 2>/dev/null
+    waitfor $1
+    mkqnx6fs -q $1
+    mount -w $1 $2
+}
 
-echo "---> Setting up writable /var for vsomeip"
-# Save sshd_config before mounting over /var (IFS /var is read-only)
-mkdir -p /tmp/var_backup
-cp /var/ssh/sshd_config /tmp/var_backup/ 2>/dev/null || true
-# Mount RAM disk for writable /var
-devb-ram ram capacity=2 blk ramdisk=5m,cache=256k,vnode=64 2>/dev/null
-waitfor /dev/ram1 2
-mkqnx6fs -q /dev/ram1
-mount -w /dev/ram1 /var
-# Restore sshd_config and generate host key
+echo "---> Initializing RAM disks"
+
+# 1. Setup 10MB RAM disk for LoLa discovery
+setup_ramdisk /dev/ram0 /tmp_discovery 10m 512k 256 1
+
+# 2. Setup 5MB RAM disk for writable /var (preserving sshd_config)
+cp /var/ssh/sshd_config /tmp/sshd_config_backup 2>/dev/null || true
+setup_ramdisk /dev/ram1 /var 5m 256k 64 2
+
+echo "---> Configuring SSH environment"
+# Restore config and generate host key
 mkdir -p /var/ssh /var/run
-cp /tmp/var_backup/sshd_config /var/ssh/ 2>/dev/null || true
-
-echo "---> Generating SSH host key"
+cp /tmp/sshd_config_backup /var/ssh/sshd_config 2>/dev/null || true
 ssh-keygen -t rsa -f /var/ssh/ssh_host_rsa_key -N "" -q
 chmod 400 /var/ssh/ssh_host_rsa_key
 
-echo "---> Configuring network"
-/etc/network_setup.sh                   # Execute network configuration script
-
-echo "---> Starting pseudo-terminal manager"
-devc-pty                                # Start PTY manager for SSH terminal sessions
-waitfor /dev/ptyp0 5 2>/dev/null || true  # Wait up to 5 seconds for PTY device
+echo "---> Starting Network and PTY Manager"
+/etc/network_setup.sh
+devc-pty
+waitfor /dev/ptyp0 5 2>/dev/null || true
 
 echo "---> Starting SSH daemon"
-/proc/boot/sshd -f /var/ssh/sshd_config  # Start SSH daemon for remote access
+/proc/boot/sshd -f /var/ssh/sshd_config
 
 echo "---> SOME/IP Gateway system ready"
