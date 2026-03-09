@@ -235,4 +235,5 @@ mount
 /etc/gatewayd=${GATEWAY_CONFIGS}
 /etc/someipd=${SOMEIPD_CONFIGS}
 /etc/sample_client=${SAMPLE_CLIENT_CONFIGS}
+/etc/benchmarks=${BENCHMARK_CONFIGS}
 /usr/bin/tests=${TEST_BINS}

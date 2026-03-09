@@ -100,6 +100,32 @@ pkg_tar(
 )
 
 # ---------------------------------------------------------------------------
+# Package benchmark binaries for the IFS
+# ---------------------------------------------------------------------------
+pkg_tar(
+    name = "benchmark_binaries_pkg",
+    srcs = [
+        "//tests/performance_benchmarks:echo_server",
+        "//tests/performance_benchmarks:ipc_benchmarks",
+    ],
+    include_runfiles = True,
+    package_dir = "/",
+)
+
+# ---------------------------------------------------------------------------
+# Package benchmark config files for the IFS
+# ---------------------------------------------------------------------------
+pkg_tar(
+    name = "benchmark_configs_pkg",
+    srcs = [
+        "//tests/performance_benchmarks:config/benchmark_mw_com_config.json",
+    ],
+    remap_paths = {
+        "/tests/performance_benchmarks/config/benchmark_mw_com_config.json": "benchmark_mw_com_config.json",
+    },
+)
+
+# ---------------------------------------------------------------------------
 # QNX IFS image: boots QNX 8.0 with someipd + gatewayd inside with networking
 # ---------------------------------------------------------------------------
 qnx_ifs(
@@ -121,6 +147,8 @@ qnx_ifs(
         "GATEWAY_CONFIGS": ":gateway_configs_pkg",
         "SOMEIPD_CONFIGS": ":someipd_configs_pkg",
         "SAMPLE_CLIENT_CONFIGS": ":sample_client_configs_pkg",
+        "TEST_BINS": ":benchmark_binaries_pkg",
+        "BENCHMARK_CONFIGS": ":benchmark_configs_pkg",
     },
     visibility = ["//visibility:public"],
 )

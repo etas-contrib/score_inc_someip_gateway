@@ -23,10 +23,13 @@ Usage:
     python3 analyze_pcap_someip.py [pcap_file]
 """
 
+from __future__ import annotations
+
 import struct
 import sys
-import os
 from collections import defaultdict
+from dataclasses import dataclass
+from pathlib import Path
 
 from scapy.all import rdpcap, IP, UDP, conf
 
@@ -48,7 +51,15 @@ ENTRY_TYPE_SUBSCRIBE = 0x06
 ENTRY_TYPE_STOP_SUBSCRIBE_ACK = 0x07
 
 
-def decode_sd_entry(data, offset=0):
+@dataclass
+class SdEntry:
+    type_id: int
+    service: int
+    instance: int
+    eventgroup: int | None
+
+
+def decode_sd_entry(data: bytes, offset: int = 0) -> SdEntry | None:
     """Decode a single 16-byte SOME/IP-SD entry."""
     if len(data) < offset + 16:
         return None
@@ -63,12 +74,12 @@ def decode_sd_entry(data, offset=0):
         if eventgroup in (0xFFFF, 0):
             eventgroup = None
 
-    return {
-        "type_id": entry_type,
-        "service": service_id,
-        "instance": instance_id,
-        "eventgroup": eventgroup,
-    }
+    return SdEntry(
+        type_id=entry_type,
+        service=service_id,
+        instance=instance_id,
+        eventgroup=eventgroup,
+    )
 
 
 def extract_sd_entries(payload):
@@ -141,6 +152,38 @@ def print_summary(ip, name, data):
     print("\n")
 
 
+def extract_someip_event(payload):
+    """Extract SOME/IP event notification info from raw UDP payload bytes.
+
+    Returns a dict with service_id, method_id, msg_type, payload_size if it's
+    a notification (msg_type 0x02), or None otherwise.
+    """
+    if len(payload) < 16:  # Need at least a SOME/IP header
+        return None
+
+    service_id = struct.unpack("!H", payload[0:2])[0]
+    method_id = struct.unpack("!H", payload[2:4])[0]
+    length = struct.unpack("!I", payload[4:8])[0]
+    msg_type = payload[14]
+
+    # Skip SD messages
+    if service_id == SOMEIP_SD_SERVICE_ID and method_id == SOMEIP_SD_METHOD_ID:
+        return None
+
+    # msg_type 0x02 = NOTIFICATION
+    if msg_type != 0x02:
+        return None
+
+    payload_size = (
+        length - 8
+    )  # length includes request_id(4) + proto/iface/type/return(4)
+    return {
+        "service_id": service_id,
+        "method_id": method_id,
+        "payload_size": max(payload_size, 0),
+    }
+
+
 def analyze(pcap_file: str) -> dict[str, dict[str, set]]:
     """Analyze a pcap file and return SOME/IP-SD data per host.
 
@@ -167,20 +210,45 @@ def analyze(pcap_file: str) -> dict[str, dict[str, set]]:
 
         payload = bytes(pkt[UDP].payload)
         for entry in extract_sd_entries(payload):
-            t_id = entry["type_id"]
-            svc = entry["service"]
-            inst = entry["instance"]
-            eg = entry["eventgroup"]
-
-            if t_id == ENTRY_TYPE_OFFER:
-                host_data[src_ip]["offers"].add((svc, inst, eg))
-            elif t_id == ENTRY_TYPE_FIND:
-                host_data[src_ip]["finds"].add((svc, inst))
-            elif t_id == ENTRY_TYPE_SUBSCRIBE:
-                host_data[src_ip]["subscribes"].add((svc, inst, eg))
+            if entry.type_id == ENTRY_TYPE_OFFER:
+                host_data[src_ip]["offers"].add(
+                    (entry.service, entry.instance, entry.eventgroup)
+                )
+            elif entry.type_id == ENTRY_TYPE_FIND:
+                host_data[src_ip]["finds"].add((entry.service, entry.instance))
+            elif entry.type_id == ENTRY_TYPE_SUBSCRIBE:
+                host_data[src_ip]["subscribes"].add(
+                    (entry.service, entry.instance, entry.eventgroup)
+                )
 
     # Only return IPs that had actual SD traffic
     return dict(host_data)
+
+
+def analyze_events(pcap_file: str) -> dict[str, list[dict]]:
+    """Analyze a pcap file for SOME/IP event notification packets (non-SD).
+
+    Returns dict keyed by source IP with list of event dicts:
+        {"service_id": int, "method_id": int, "payload_size": int}
+    """
+    host_events: dict[str, list[dict]] = defaultdict(list)
+
+    packets = rdpcap(pcap_file)
+
+    for pkt in packets:
+        if not pkt.haslayer(IP) or not pkt.haslayer(UDP):
+            continue
+
+        src_ip = pkt[IP].src
+        if src_ip not in TARGET_HOSTS:
+            continue
+
+        payload = bytes(pkt[UDP].payload)
+        event = extract_someip_event(payload)
+        if event:
+            host_events[src_ip].append(event)
+
+    return dict(host_events)
 
 
 def main():
@@ -190,7 +258,7 @@ def main():
 
     pcap_file = sys.argv[1]
 
-    if not os.path.exists(pcap_file):
+    if not Path(pcap_file).exists():
         print(f"Error: pcap file not found: {pcap_file}")
         sys.exit(1)
 
@@ -201,11 +269,11 @@ def main():
     # Output Results
     print("\n")
 
-    for ip in ("192.168.87.2", "192.168.87.3"):
+    for ip, name in TARGET_HOSTS.items():
         if ip in host_data:
-            print_summary(ip, TARGET_HOSTS[ip], host_data[ip])
+            print_summary(ip, name, host_data[ip])
         else:
-            print(f"No data found for {TARGET_HOSTS[ip]} ({ip})")
+            print(f"No data found for {name} ({ip})")
 
 
 if __name__ == "__main__":

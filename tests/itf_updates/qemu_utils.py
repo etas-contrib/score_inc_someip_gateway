@@ -24,7 +24,7 @@ import tempfile
 import time
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Generator, Optional
+from typing import Optional
 
 import paramiko
 import pytest
@@ -314,26 +314,3 @@ def qemu_run_script() -> Path:
     if found:
         return found
     pytest.fail(f"Cannot find run_qemu.sh at '{WORKSPACE_NAME}/{path}'.")
-
-
-@pytest.fixture(scope="module")
-def qemu_dual_instances(
-    qemu_ifs_image: Path, qemu_run_script: Path
-) -> Generator[tuple[QEMUInstance, QEMUInstance], None, None]:
-    """Start two QEMU instances for inter-QEMU communication tests.
-
-    Instance 1: 192.168.87.2:22 (direct bridge access)
-    Instance 2: 192.168.87.3:22 (direct bridge access)
-    """
-    instance1 = start_qemu(
-        ifs_image=qemu_ifs_image, run_script=qemu_run_script, instance_id=1
-    )
-
-    instance2 = start_qemu(
-        ifs_image=qemu_ifs_image, run_script=qemu_run_script, instance_id=2
-    )
-
-    yield instance1, instance2
-
-    instance1.stop()
-    instance2.stop()
