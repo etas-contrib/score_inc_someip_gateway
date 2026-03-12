@@ -16,7 +16,21 @@ This daemon contains the SOME/IP communication stack and is QM
 """
 
 load("@rules_cc//cc:cc_binary.bzl", "cc_binary")
+load("@rules_cc//cc:cc_library.bzl", "cc_library")
 load("@score_communication//bazel/tools:json_schema_validator.bzl", "validate_json_schema_test")
+
+# ============================================================================
+# Config Reader Library
+# ============================================================================
+cc_library(
+    name = "vsomeip_config_reader",
+    srcs = ["vsomeip_config_reader.cpp"],
+    hdrs = ["vsomeip_config_reader.h"],
+    deps = [
+        "@nlohmann_json//:json",
+        "@vsomeip",
+    ],
+)
 
 # ============================================================================
 # Main Binary
@@ -27,12 +41,16 @@ cc_binary(
     args = [
         "-service_instance_manifest",
         "$(rootpath etc/mw_com_config.json)",
+        "-someipd_config",
+        "$(rootpath etc/someipd_config.json)",
     ],
     data = [
         "etc/mw_com_config.json",
+        "etc/someipd_config.json",
     ],
     visibility = ["//visibility:public"],
     deps = [
+        ":vsomeip_config_reader",
         "//src/network_service:provider",
         "@score_baselibs//score/language/futurecpp",
         "@score_communication//score/mw/com",
