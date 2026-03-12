@@ -640,7 +640,7 @@ int main(int argc, char** argv) {
     g_stop_token = g_stop_source.get_token();
 
     // Initialize runtime with default config
-    const char* score_args[] = {"ipc_benchmarks", "-service_instance_manifest",
+    const char* score_args[] = {"ipc_benchmarks", "--service_instance_manifest",
                                 "tests/performance_benchmarks/config/benchmark_mw_com_config.json"};
     int score_argc = sizeof(score_args) / sizeof(score_args[0]);
     score::mw::com::runtime::InitializeRuntime(score_argc, score_args);

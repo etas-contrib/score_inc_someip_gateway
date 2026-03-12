@@ -34,6 +34,10 @@ exports_files(
 cc_binary(
     name = "gatewayd",
     srcs = ["main.cpp"],
+    data = [
+        "etc/mw_com_config.json",
+        ":config_file",
+    ],
     visibility = ["//visibility:public"],
     deps = [
         ":config_flatbuffers",
