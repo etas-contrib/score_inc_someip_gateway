@@ -41,8 +41,7 @@ class RemoteServiceInstance {
     ///          components to receive messages from the someipd daemon and forward them to
     ///          local applications via IPC.
     RemoteServiceInstance(std::shared_ptr<const config::ServiceInstance> service_instance_config,
-                          // TODO: Use something generic (template)?
-                          echo_service::EchoResponseSkeleton&& ipc_skeleton,
+                          score::mw::com::GenericSkeleton&& ipc_skeleton,
                           network_service::interfaces::message_transfer::SomeipMessageTransferProxy
                               someip_message_proxy);
 
@@ -68,7 +67,7 @@ class RemoteServiceInstance {
     /// Configuration for this service instance
     std::shared_ptr<const config::ServiceInstance> service_instance_config_;
     /// IPC skeleton for forwarding messages to local consumer applications
-    echo_service::EchoResponseSkeleton ipc_skeleton_;
+    score::mw::com::GenericSkeleton ipc_skeleton_;
     /// Proxy for receiving messages from the someipd daemon
     network_service::interfaces::message_transfer::SomeipMessageTransferProxy someip_message_proxy_;
 };
