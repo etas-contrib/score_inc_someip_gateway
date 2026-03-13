@@ -31,8 +31,7 @@ static const std::size_t SOMEIP_FULL_HEADER_SIZE = 16;
 
 RemoteServiceInstance::RemoteServiceInstance(
     std::shared_ptr<const config::ServiceInstance> service_instance_config,
-    echo_service::EchoResponseSkeleton&& ipc_skeleton,
-    SomeipMessageTransferProxy someip_message_proxy)
+    score::mw::com::GenericSkeleton&& ipc_skeleton, SomeipMessageTransferProxy someip_message_proxy)
     : service_instance_config_(std::move(service_instance_config)),
       ipc_skeleton_(std::move(ipc_skeleton)),
       someip_message_proxy_(std::move(someip_message_proxy)) {
@@ -54,7 +53,12 @@ RemoteServiceInstance::RemoteServiceInstance(
                 // TODO: Check service id, method id, etc. Maybe do that in the dispatcher already?
                 auto payload = message.subspan(SOMEIP_FULL_HEADER_SIZE);
 
-                auto maybe_sample = ipc_skeleton_.echo_response_tiny_.Allocate();
+                // TODO: Check based on event/method id within the SOME/IP header which event was
+                // received, to forward via the correct IPC event. For now, we assume it's always
+                // the echo_response_tiny event.
+                auto& event = const_cast<score::mw::com::impl::GenericSkeletonEvent&>(
+                    ipc_skeleton_.GetEvents().find("echo_response_tiny")->second);
+                auto maybe_sample = event.Allocate();
                 if (!maybe_sample.has_value()) {
                     std::cerr << "Failed to allocate SOME/IP message:"
                               << maybe_sample.error().Message() << std::endl;
@@ -66,7 +70,7 @@ RemoteServiceInstance::RemoteServiceInstance(
                 std::memcpy(sample.Get(), payload.data(),
                             std::min(sizeof(echo_service::EchoResponseTiny), payload.size()));
 
-                ipc_skeleton_.echo_response_tiny_.Send(std::move(sample));
+                event.Send(std::move(sample));
             },
             max_sample_count);
     });
@@ -77,11 +81,11 @@ RemoteServiceInstance::RemoteServiceInstance(
 namespace {
 struct FindServiceContext {
     std::shared_ptr<const config::ServiceInstance> config;
-    echo_service::EchoResponseSkeleton skeleton;
+    score::mw::com::GenericSkeleton skeleton;
     std::vector<std::unique_ptr<RemoteServiceInstance>>& instances;
 
     FindServiceContext(std::shared_ptr<const config::ServiceInstance> config_,
-                       echo_service::EchoResponseSkeleton&& skeleton_,
+                       score::mw::com::GenericSkeleton&& skeleton_,
                        std::vector<std::unique_ptr<RemoteServiceInstance>>& instances_)
         : config(std::move(config_)), skeleton(std::move(skeleton_)), instances(instances_) {}
 };
@@ -99,8 +103,32 @@ Result<mw::com::FindServiceHandle> RemoteServiceInstance::CreateAsyncRemoteServi
                                       service_instance_config->instance_specifier()->str())
                                       .value();
 
-    // TODO: Needs to be a generic Skeleton. Just for prototype showcase.
-    auto create_ipc_result = echo_service::EchoResponseSkeleton::Create(ipc_instance_specifier);
+    std::vector<std::string> event_names{};
+    // IMPORTANT: reserve() is required to prevent reallocation,
+    // since EventInfo::name is a string_view pointing to event_names elements
+    event_names.reserve(service_instance_config->events()->size());
+
+    std::vector<score::mw::com::impl::EventInfo> events{};
+    events.reserve(service_instance_config->events()->size());
+
+    for (const auto& event : *service_instance_config->events()) {
+        if (event == nullptr) {
+            std::cerr << "ERROR: Encountered nullptr in events configuration!" << std::endl;
+            return MakeUnexpected(score::mw::com::ComErrc::kInvalidConfiguration);
+        }
+        event_names.push_back(event->event_name()->str());
+
+        // TODO: Get the event type info from somewhere. Configuration?
+        score::mw::com::impl::DataTypeMetaInfo type_info{sizeof(echo_service::EchoResponseTiny),
+                                                         alignof(echo_service::EchoResponseTiny)};
+        events.push_back({event_names.back(), type_info});
+    }
+
+    score::mw::com::impl::GenericSkeletonServiceElementInfo create_params;
+    create_params.events = events;
+
+    auto create_ipc_result =
+        score::mw::com::GenericSkeleton::Create(ipc_instance_specifier, create_params);
     // TODO: Error handling
     auto ipc_skeleton = std::move(create_ipc_result).value();
 
