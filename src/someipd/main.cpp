@@ -17,6 +17,7 @@
 #include <iostream>
 #include <set>
 #include <thread>
+#include <cstdlib>
 #include <vsomeip/defines.hpp>
 #include <vsomeip/primitive_types.hpp>
 #include <vsomeip/vsomeip.hpp>
@@ -48,29 +49,33 @@ int main(int argc, const char* argv[]) {
     std::signal(SIGTERM, termination_handler);
     std::signal(SIGINT, termination_handler);
 
-    std::string someipd_config_path = "etc/someipd_config.json";
+    std::optional<std::string_view> someipd_config_path;
+
     for (int i = 1; i < argc - 1; ++i) {
-        if (std::string(argv[i]) == "-someipd_config") {
+        if (std::string_view{argv[i]} == "-someipd_config") {
             someipd_config_path = argv[i + 1];
             break;
         }
     }
 
-    SomeipDConfig config{};
-    try {
-        config = score::someip_gateway::someipd::ReadSomeipDConfig(someipd_config_path);
-    } catch (const std::exception& ex) {
-        std::cerr << "Failed to load someipd config: " << ex.what() << std::endl;
-        return 1;
+    if (!someipd_config_path.has_value()) {
+        std::cerr << "Mandatory argument '-someipd_config' is missing.\n";
+        return EXIT_FAILURE;
     }
 
+    SomeipDConfig config{};
+    try {
+        config = score::someip_gateway::someipd::ReadSomeipDConfig(std::string(someipd_config_path.value()));
+    } catch (const std::exception& ex) {
+        std::cerr << "Failed to load someipd config: " << ex.what() << '\n';
+        return EXIT_FAILURE;
+    }
     score::mw::com::runtime::InitializeRuntime(argc, argv);
-
     auto runtime = vsomeip::runtime::get();
     auto application = runtime->create_application("someipd");
     if (!application->init()) {
         std::cerr << "App init failed";
-        return 1;
+        return EXIT_FAILURE;
     }
 
     std::thread([application, config]() {
