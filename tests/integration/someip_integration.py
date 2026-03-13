@@ -19,6 +19,7 @@ The pcap analysis checks for expected SOME/IP-SD offers, finds, and subscription
 
 from __future__ import annotations
 
+import logging
 import os
 import signal
 import subprocess
@@ -38,6 +39,8 @@ from tests.integration.someip_network_analyzer import (
     analyze as analyze_pcap_file,
     analyze_events,
 )
+
+logger = logging.getLogger(__name__)
 
 
 # ---------------------------------------------------------------------------
@@ -184,7 +187,7 @@ def kill_stale_qemu_instances() -> None:
             try:
                 old_pid = int(pid_file.read_text().strip())
                 os.kill(old_pid, signal.SIGTERM)
-                print(f"Killed stale QEMU instance {instance_id} (PID {old_pid})")
+                logger.info(f"Killed stale QEMU instance {instance_id} (PID {old_pid})")
                 time.sleep(1)
                 pid_file.unlink(missing_ok=True)
             except (ProcessLookupError, ValueError):
@@ -277,19 +280,19 @@ def start_qemu2_services(host: str) -> None:
 
 def verify_sd_match(ip: str, expected: SDExpectation, actual: SDResult) -> None:
     """Verify SD offers/finds/subscriptions match expected values."""
-    print("-" * 80)
-    print(f"CHECKING: {expected.name} ({ip})")
-    print("-" * 80)
+    logger.info("-" * 80)
+    logger.info(f"CHECKING: {expected.name} ({ip})")
+    logger.info("-" * 80)
 
     for field in ("offers", "finds", "subscribed"):
         exp_val = getattr(expected, field)
         act_val = getattr(actual, field)
         label = "SUBSCRIBED SUCCESSFULLY TO" if field == "subscribed" else field.upper()
-        print(f"  {label}:")
-        print(f"    expected: {sorted(exp_val)}")
-        print(f"    actual:   {sorted(act_val)}")
+        logger.info(f"  {label}:")
+        logger.info(f"    expected: {sorted(exp_val)}")
+        logger.info(f"    actual:   {sorted(act_val)}")
         assert exp_val == act_val, f"[{expected.name}] {label} mismatch"
-        print("    -> OK")
+        logger.info("    -> OK")
 
 
 def verify_partial_sd(ip: str, parsed: dict[str, SDResult], output: str) -> None:
@@ -297,29 +300,28 @@ def verify_partial_sd(ip: str, parsed: dict[str, SDResult], output: str) -> None
     assert ip in parsed, f"No SOME/IP-SD data for {ip}.\nOutput:\n{output}"
     actual = parsed[ip]
 
-    print(f"  OFFERS: {sorted(actual.offers)}")
+    logger.info(f"  OFFERS: {sorted(actual.offers)}")
     assert actual.offers, f"Should have offers, got: {actual.offers}"
-    print("    -> OK (has offers)")
+    logger.info("    -> OK (has offers)")
 
-    print(f"  FINDS: {sorted(actual.finds)}")
+    logger.info(f"  FINDS: {sorted(actual.finds)}")
     assert actual.finds, f"Should have finds, got: {actual.finds}"
-    print("    -> OK (has finds)")
+    logger.info("    -> OK (has finds)")
 
-    print(f"  SUBSCRIBED: {sorted(actual.subscribed)}")
+    logger.info(f"  SUBSCRIBED: {sorted(actual.subscribed)}")
     assert not actual.subscribed, (
         f"Should have no subscriptions, got: {actual.subscribed}"
     )
-    print("    -> OK (no subscriptions as expected)")
+    logger.info("    -> OK (no subscriptions as expected)")
 
 
 def verify_event_match(
     ip: str, expected: EventExpectation, events: dict[str, list[dict]]
 ) -> None:
     """Verify SOME/IP event notification matches expected event_id and payload_size."""
-    print()
-    print("-" * 80)
-    print(f"CHECKING: {expected.name} ({ip})")
-    print("-" * 80)
+    logger.info("-" * 80)
+    logger.info(f"CHECKING: {expected.name} ({ip})")
+    logger.info("-" * 80)
 
     matching = [e for e in events.get(ip, []) if e["service_id"] == expected.service_id]
     assert matching, (
@@ -332,21 +334,21 @@ def verify_event_match(
         payload_size=matching[0]["payload_size"],
     )
 
-    print(
+    logger.info(
         f"  event_id:     expected=0x{expected.event_id:04x}  actual=0x{actual.event_id:04x}"
     )
     assert actual.event_id == expected.event_id, (
         f"[{expected.name}] event_id mismatch: expected 0x{expected.event_id:04x}, got 0x{actual.event_id:04x}"
     )
-    print("    -> OK")
+    logger.info("    -> OK")
 
-    print(
+    logger.info(
         f"  payload_size: expected={expected.payload_size}B  actual={actual.payload_size}B"
     )
     assert actual.payload_size == expected.payload_size, (
         f"[{expected.name}] payload_size mismatch: expected {expected.payload_size}, got {actual.payload_size}"
     )
-    print("    -> OK")
+    logger.info("    -> OK")
 
 
 class TestSomeIPSD:
@@ -396,7 +398,7 @@ class TestSomeIPSD:
 
         parsed = analyze_pcap(pcap)
         assert not parsed, f"Expected no SD data, found: {list(parsed.keys())}"
-        print("PASS: No SOME/IP-SD traffic when no QEMU instances running")
+        logger.info("PASS: No SOME/IP-SD traffic when no QEMU instances running")
 
     def test_negative_both_qemus_no_services(self, qemu_ifs_image, qemu_run_script):
         """Negative: Both QEMUs running but no services - no traffic expected."""
@@ -407,8 +409,8 @@ class TestSomeIPSD:
         instance1 = start_qemu(qemu_ifs_image, qemu_run_script, instance_id=1)
         instance2 = start_qemu(qemu_ifs_image, qemu_run_script, instance_id=2)
         try:
-            print(f"QEMU 1: {instance1.ssh_host}, QEMU 2: {instance2.ssh_host}")
-            print("Waiting 5 seconds without starting services...")
+            logger.info(f"QEMU 1: {instance1.ssh_host}, QEMU 2: {instance2.ssh_host}")
+            logger.info("Waiting 5 seconds without starting services...")
 
             with tcpdump_capture(pcap, tmp / "tcpdump_no_services.log"):
                 time.sleep(5)
@@ -418,7 +420,7 @@ class TestSomeIPSD:
 
         parsed = analyze_pcap(pcap)
         assert not parsed, f"Expected no SD data, found: {list(parsed.keys())}"
-        print("PASS: No SOME/IP-SD traffic when QEMUs running without services")
+        logger.info("PASS: No SOME/IP-SD traffic when QEMUs running without services")
 
     def test_negative_only_qemu1_with_services(self, qemu_ifs_image, qemu_run_script):
         """Negative: Only QEMU 1 with services - offers/finds but no subscriptions."""
@@ -430,23 +432,23 @@ class TestSomeIPSD:
         instance = start_qemu(qemu_ifs_image, qemu_run_script, instance_id=1)
         try:
             with tcpdump_capture(pcap, log):
-                print(f"Starting services on QEMU 1 ({instance.ssh_host})...")
+                logger.info(f"Starting services on QEMU 1 ({instance.ssh_host})...")
                 start_qemu1_services(instance.ssh_host)
-                print(f"Waiting {SERVICE_SETTLE_TIME}s for SD exchanges...")
+                logger.info(f"Waiting {SERVICE_SETTLE_TIME}s for SD exchanges...")
                 time.sleep(SERVICE_SETTLE_TIME)
         finally:
             instance.stop()
 
         parsed = analyze_pcap(pcap)
 
-        print("-" * 80)
-        print("CHECKING: Only QEMU 1 running with services")
-        print("-" * 80)
+        logger.info("-" * 80)
+        logger.info("CHECKING: Only QEMU 1 running with services")
+        logger.info("-" * 80)
 
         verify_partial_sd(QEMU1_IP, parsed, str(pcap))
         assert QEMU2_IP not in parsed, "QEMU 2 should not be present"
-        print("  QEMU 2: Not present (as expected)")
-        print("PASS: Only QEMU 1 - offers/finds present, no subscriptions")
+        logger.info("  QEMU 2: Not present (as expected)")
+        logger.info("PASS: Only QEMU 1 - offers/finds present, no subscriptions")
 
     def test_negative_only_qemu2_with_services(self, qemu_ifs_image, qemu_run_script):
         """Negative: Only QEMU 2 with services - offers/finds but no subscriptions."""
@@ -458,23 +460,23 @@ class TestSomeIPSD:
         instance = start_qemu(qemu_ifs_image, qemu_run_script, instance_id=2)
         try:
             with tcpdump_capture(pcap, log):
-                print(f"Starting sample_client on QEMU 2 ({instance.ssh_host})...")
+                logger.info(f"Starting sample_client on QEMU 2 ({instance.ssh_host})...")
                 start_qemu2_services(instance.ssh_host)
-                print(f"Waiting {SERVICE_SETTLE_TIME}s for SD exchanges...")
+                logger.info(f"Waiting {SERVICE_SETTLE_TIME}s for SD exchanges...")
                 time.sleep(SERVICE_SETTLE_TIME)
         finally:
             instance.stop()
 
         parsed = analyze_pcap(pcap)
 
-        print("-" * 80)
-        print("CHECKING: Only QEMU 2 running with services")
-        print("-" * 80)
+        logger.info("-" * 80)
+        logger.info("CHECKING: Only QEMU 2 running with services")
+        logger.info("-" * 80)
 
         verify_partial_sd(QEMU2_IP, parsed, str(pcap))
         assert QEMU1_IP not in parsed, "QEMU 1 should not be present"
-        print("  QEMU 1: Not present (as expected)")
-        print("PASS: Only QEMU 2 - offers/finds present, no subscriptions")
+        logger.info("  QEMU 1: Not present (as expected)")
+        logger.info("PASS: Only QEMU 2 - offers/finds present, no subscriptions")
 
     def test_someip_event_data_transfer(self, qemu_ifs_image, qemu_run_script):
         """Verify SOME/IP event data flows between QEMU 1 and QEMU 2."""

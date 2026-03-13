@@ -78,10 +78,12 @@ pkg_tar(
     name = "someipd_configs_pkg",
     srcs = [
         "//src/someipd:etc/mw_com_config.json",
+        "//src/someipd:etc/someipd_config.json",
         "//tests/integration:vsomeip.json",
     ],
     remap_paths = {
         "/src/someipd/etc/mw_com_config.json": "mw_com_config.json",
+        "/src/someipd/etc/someipd_config.json": "someipd_config.json",
         "/tests/integration/vsomeip.json": "vsomeip.json",
     },
 )

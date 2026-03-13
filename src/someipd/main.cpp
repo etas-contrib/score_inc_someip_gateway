@@ -162,6 +162,29 @@ int main(int argc, const char* argv[]) {
                             return;
                         }
 
+                        // Read service_id and event_id from the SOME/IP header (big-endian)
+                        const auto service_id = static_cast<vsomeip::service_t>(
+                            (std::to_integer<uint16_t>(message[0]) << 8) |
+                            std::to_integer<uint16_t>(message[1]));
+                        const auto event_id = static_cast<vsomeip::event_t>(
+                            (std::to_integer<uint16_t>(message[2]) << 8) |
+                            std::to_integer<uint16_t>(message[3]));
+
+                        // Look up the instance_id from the offered services config
+                        vsomeip::instance_t instance_id = vsomeip::ANY_INSTANCE;
+                        for (const auto& svc : config.offered_services) {
+                            if (svc.service_id == service_id) {
+                                instance_id = svc.instance_id;
+                                break;
+                            }
+                        }
+                        if (instance_id == vsomeip::ANY_INSTANCE) {
+                            std::cerr << "No offered service configured for service_id 0x"
+                                      << std::hex << service_id << ". Dropping message." << std::dec
+                                      << std::endl;
+                            return;
+                        }
+
                         // TODO: Here we need to find a better way how to pass the message to
                         // vsomeip. There doesn't seem to be a public way to just wrap the existing
                         // buffer.
