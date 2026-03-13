@@ -68,7 +68,8 @@ GATEWAYD_CMD = (
 )
 SOMEIPD_CMD = (
     "export VSOMEIP_CONFIGURATION=/etc/someipd/vsomeip.json && "
-    "/usr/bin/someipd --service_instance_manifest /etc/someipd/mw_com_config.json"
+    "/usr/bin/someipd -someipd_config /etc/someipd/someipd_config.json "
+    "--service_instance_manifest /etc/someipd/mw_com_config.json"
 )
 SAMPLE_CLIENT_CMD = (
     "export VSOMEIP_CONFIGURATION=/etc/sample_client/vsomeip.json && "

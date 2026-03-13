@@ -49,7 +49,7 @@ if [[ "${START_SERVICES}" == "true" ]]; then
 
     echo "Starting someipd..."
     ssh ${SSH_OPTS} -f ${SSH_USER}@${GUEST_IP} \
-        "export VSOMEIP_CONFIGURATION=/etc/someipd/vsomeip.json; /usr/bin/someipd --service_instance_manifest /etc/someipd/mw_com_config.json > /dev/null 2>&1"
+        "export VSOMEIP_CONFIGURATION=/etc/someipd/vsomeip.json; /usr/bin/someipd -someipd_config /etc/someipd/someipd_config.json --service_instance_manifest /etc/someipd/mw_com_config.json > /dev/null 2>&1"
     sleep 2
 
     echo "Services started on QEMU 1 (${GUEST_IP}). Dropping into SSH shell..."
