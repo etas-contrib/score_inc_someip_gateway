@@ -45,6 +45,7 @@ void termination_handler(int /*signal*/) {
 }
 
 int main(int argc, const char* argv[]) {
+    std::cout << "Starting SOME/IP daemon..." << std::endl;
     // Register signal handlers for graceful shutdown
     std::signal(SIGTERM, termination_handler);
     std::signal(SIGINT, termination_handler);
@@ -66,6 +67,23 @@ int main(int argc, const char* argv[]) {
     SomeipDConfig config{};
     try {
         config = score::someip_gateway::someipd::ReadSomeipDConfig(std::string(someipd_config_path.value()));
+        //print all the values from config for debugging
+        std::cout << "Loaded someipd config:\n";
+        for (const auto& svc : config.offered_services) {
+            std::cout << "Offered service: 0x" << std::hex <<
+                            svc.service_id << ":0x" << svc.instance_id << std::dec
+                        << " on port " << svc.unreliable_port << std::endl;
+            for (const auto& ev : svc.events) {
+                std::cout << "  Event: 0x" << std::hex << ev.event_id << " in event group 0x" << ev.eventgroup_id << std::dec << std::endl;
+            }
+        }
+        for (const auto& svc : config.subscribed_services) {
+            std::cout << "Subscribed service: 0x" << std::hex <<
+                            svc.service_id << ":0x" << svc.instance_id << std::dec << std::endl;
+            for (const auto& ev : svc.events) {
+                std::cout << "  Event: 0x" << std::hex << ev.event_id << " in event group 0x" << ev.eventgroup_id << std::dec << std::endl;
+            }
+        }
     } catch (const std::exception& ex) {
         std::cerr << "Failed to load someipd config: " << ex.what() << '\n';
         return EXIT_FAILURE;
@@ -100,6 +118,9 @@ int main(int argc, const char* argv[]) {
             // Register message handlers for all subscribed services
             for (const auto& svc : config.subscribed_services) {
                 for (const auto& ev : svc.events) {
+                    std::cout << "Registering message handler for service 0x" << std::hex << svc.service_id
+                              << ":0x" << svc.instance_id << " event 0x" << ev.event_id << std::dec
+                              << std::endl;
                     application->register_message_handler(
                         svc.service_id, svc.instance_id, ev.event_id,
                         [&skeleton](const std::shared_ptr<vsomeip::message>& msg) {
@@ -129,22 +150,18 @@ int main(int argc, const char* argv[]) {
             }
 
             // Offer all configured local services to the SOME/IP network.
-            // Order matters: offer_event → offer_service (local) → update_service_configuration
-            // (promote to network). update_service_configuration requires the service to already
-            // be offered locally — see vsomeip application.hpp docs.
+            // Order matters: offer_event must come before offer_service — see vsomeip application.hpp.
             for (const auto& svc : config.offered_services) {
                 for (const auto& ev : svc.events) {
                     std::set<vsomeip::eventgroup_t> groups{ev.eventgroup_id};
+                    std::cout << "Offering event 0x" << std::hex << svc.service_id << ":0x" << svc.instance_id
+                              << " event 0x" << ev.event_id << " in event group 0x" << ev.eventgroup_id
+                              << std::dec << std::endl;
                     application->offer_event(svc.service_id, svc.instance_id, ev.event_id, groups);
                 }
+                std::cout << "Offering service 0x" << std::hex << svc.service_id << ":0x" << svc.instance_id
+                          << std::dec << std::endl;
                 application->offer_service(svc.service_id, svc.instance_id);
-                if (svc.unreliable_port != 0) {
-                    // Expose the locally offered service on the network via UDP.
-                    // This replaces the "services" section in vsomeip.json.
-                    application->update_service_configuration(
-                        svc.service_id, svc.instance_id, svc.unreliable_port,
-                        /*reliable=*/false, /*magic_cookies_enabled=*/false, /*offer=*/true);
-                }
             }
 
             auto payload = vsomeip::runtime::get()->create_payload();
