@@ -74,14 +74,8 @@ int main(int argc, const char* argv[]) {
     }
 
     SomeipDConfig config{};
-    try {
-        config = score::someip_gateway::someipd::ReadSomeipDConfig(
-            std::string(someipd_config_path.value()));
-        LogConfig(config);
-    } catch (const std::exception& ex) {
-        score::mw::log::LogError() << "Failed to load someipd config: " << ex.what();
-        return EXIT_FAILURE;
-    }
+    config = score::someip_gateway::someipd::ReadSomeipDConfig(std::string(someipd_config_path.value()));
+    LogConfig(config);
 
     // Create adapters — swap these to use different SOME/IP stacks or IPC frameworks.
     auto network_stack = std::make_unique<VsomeipAdapter>("someipd");
