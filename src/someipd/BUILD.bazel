@@ -21,7 +21,7 @@ load("@score_communication//bazel/tools:json_schema_validator.bzl", "validate_js
 # Export config files for deployment
 exports_files(
     ["etc/mw_com_config.json"],
-    visibility = ["//visibility:public"],
+    visibility = ["//deployment/qemu:__pkg__"],
 )
 
 # ============================================================================

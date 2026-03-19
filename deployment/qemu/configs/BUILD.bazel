@@ -32,7 +32,7 @@ filegroup(
         "qcrypto.conf",
         "startup.sh",
     ],
-    visibility = ["//visibility:public"],
+    visibility = ["//deployment/qemu:__subpackages__"],
 )
 
 filegroup(
@@ -43,5 +43,5 @@ filegroup(
         "profile",
         "sshd_config",
     ],
-    visibility = ["//visibility:public"],
+    visibility = ["//deployment/qemu:__subpackages__"],
 )

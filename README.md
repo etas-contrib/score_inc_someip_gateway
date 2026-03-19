@@ -44,10 +44,19 @@ If you type `open` or `close` the command will be sent via network.
 
 For integration tests where the communication between two QEMU instances is required, a custom implementation is used to start and manage the QEMU instances within the test logic. This is because ITF does not support starting multiple QEMU instances in parallel yet.
 
-For the QEMU QNX x864 image to run on host please run the script deployment/qemu/setup_bridge.sh with sudo privileges to setup the required network bridge and tap interfaces.
-It is stronly recommended to run all tests with `--nocache_test_results` which is the best way on development cycles to ensure you are always running the latest version of the tests and not accidentally running cached results.
+**Prerequisite: Network Setup**
+The network bridge and tap interfaces must be configured before running the tests.
 
-Tu run all tests (will take around 2 minutes)
+- **Dev container**: this is done automatically on container start via `deployment/qemu/setup_bridge.sh`.
+- **Host machine**: run the script manually with sudo privileges:
+
+```sh
+sudo deployment/qemu/setup_bridge.sh
+```
+
+It is recommended to run all tests with `--nocache_test_results` to ensure you are always running the latest version of the tests and not accidentally seeing cached results.
+
+To run all tests (will take around 2 minutes):
 
 ```sh
 bazel test  //tests/...  --test_output=all --nocache_test_results --config=x86_64-qnx
@@ -63,12 +72,6 @@ Run a specific integration test `test_negative_only_qemu1_with_services` for SOM
 
 ```sh
 bazel test //tests/integration:someip_integration_tests --test_output=all --config=x86_64-qnx --test_arg='-k' --test_arg='test_negative_only_qemu1_with_services'
-```
-
-To run the QNX tests using dev containers please execute the shell command:
-
-```sh
-sudo deployment/qemu/setup_bridge.sh
 ```
 
 ## 📝 Configuration

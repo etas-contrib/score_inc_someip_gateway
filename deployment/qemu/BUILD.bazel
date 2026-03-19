@@ -30,7 +30,10 @@ exports_files(
     [
         "run_qemu.sh",
     ],
-    visibility = ["//visibility:public"],
+    visibility = [
+        "//deployment:__subpackages__",
+        "//tests:__subpackages__",
+    ],
 )
 
 # ---------------------------------------------------------------------------
@@ -150,5 +153,8 @@ qnx_ifs(
         "TEST_BINS": ":benchmark_binaries_pkg",
         "BENCHMARK_CONFIGS": ":benchmark_configs_pkg",
     },
-    visibility = ["//visibility:public"],
+    visibility = [
+        "//deployment:__subpackages__",
+        "//tests:__subpackages__",
+    ],
 )
