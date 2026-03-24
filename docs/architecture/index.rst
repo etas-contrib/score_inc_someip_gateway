@@ -15,6 +15,18 @@
 SOMEIP Gateway Architecture
 ===========================
 
+Components
+----------
+
+.. comp:: SOME/IP Stack Daemon
+   :id: comp__someipd
+   :status: valid
+   :safety: QM
+   :security: NO
+
+   The SOME/IP stack daemon (QM), wrapping vsomeip for all network I/O
+   and SOME/IP Service Discovery.
+
 Design decisions
 ----------------
 
@@ -22,3 +34,4 @@ Design decisions
    :maxdepth: 1
 
    dec_someipgw_registration.rst
+   tc8_conformance_testing.rst
