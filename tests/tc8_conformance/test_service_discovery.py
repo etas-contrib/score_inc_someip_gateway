@@ -1216,6 +1216,16 @@ class TestSDSubscribeNAck:
         test_type="requirements-based",
         derivation_technique="requirements-analysis",
     )
+    @pytest.mark.xfail(
+        strict=True,
+        reason=(
+            "vsomeip 3.6.1 limitation (SOMEIPSRV_SD_MESSAGE_19): DUT sends a positive "
+            "SubscribeEventgroupAck (TTL > 0) even when reserved bits are set in the "
+            "Subscribe entry; spec requires a NAck (TTL = 0). "
+            "See docs/architecture/tc8_conformance_testing.rst "
+            "§Known SOME/IP Stack Limitations."
+        ),
+    )
     def test_sd_message_19_reserved_field_set(
         self,
         someipd_dut: subprocess.Popen[bytes],

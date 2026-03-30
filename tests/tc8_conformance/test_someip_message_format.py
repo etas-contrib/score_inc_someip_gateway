@@ -826,6 +826,15 @@ class TestSomeipBasicIdentifiers:
         test_type="requirements-based",
         derivation_technique="requirements-analysis",
     )
+    @pytest.mark.xfail(
+        strict=True,
+        reason=(
+            "vsomeip 3.6.1 limitation (SOMEIPSRV_BASIC_03): DUT sends a RESPONSE "
+            "for event-ID messages (method_id bit 15 = 1). "
+            "See docs/architecture/tc8_conformance_testing.rst "
+            "§Known SOME/IP Stack Limitations."
+        ),
+    )
     def test_basic_03_event_method_id_no_response(
         self,
         someipd_dut: subprocess.Popen[bytes],
@@ -1202,6 +1211,15 @@ class TestSomeipFireAndForgetAndErrors:
         fully_verifies=["comp_req__tc8_conformance__msg_resp_header"],
         test_type="requirements-based",
         derivation_technique="requirements-analysis",
+    )
+    @pytest.mark.xfail(
+        strict=True,
+        reason=(
+            "vsomeip 3.6.1 limitation (SOMEIPSRV_RPC_08): DUT replies to REQUEST "
+            "messages carrying a non-zero return code, violating the spec. "
+            "See docs/architecture/tc8_conformance_testing.rst "
+            "§Known SOME/IP Stack Limitations."
+        ),
     )
     def test_rpc_08_request_with_error_return_code_no_reply(
         self,
