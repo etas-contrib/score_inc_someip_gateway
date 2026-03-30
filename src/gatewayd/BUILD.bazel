@@ -64,6 +64,7 @@ cc_library(
         ":config_flatbuffers",
         "//src/network_service:consumer",
         "//tests/benchmarks:echo_service",
+        "@score_baselibs//score/containers:non_relocatable_vector",
         "@score_communication//score/mw/com",
     ],
 )

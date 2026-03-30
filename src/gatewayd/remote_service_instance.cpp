@@ -16,6 +16,7 @@
 #include <cstring>
 #include <iostream>
 
+#include "score/containers/non_relocatable_vector.h"
 #include "score/mw/com/com_error_domain.h"
 #include "score/mw/com/types.h"
 
@@ -103,8 +104,8 @@ Result<mw::com::FindServiceHandle> RemoteServiceInstance::CreateAsyncRemoteServi
                                       service_instance_config->instance_specifier()->str())
                                       .value();
 
-    std::vector<score::mw::com::EventInfo> events{};
-    events.reserve(service_instance_config->events()->size());
+    score::containers::NonRelocatableVector<score::mw::com::EventInfo> events(
+        service_instance_config->events()->size());
 
     for (const auto& event : *service_instance_config->events()) {
         if (event == nullptr) {
@@ -115,7 +116,8 @@ Result<mw::com::FindServiceHandle> RemoteServiceInstance::CreateAsyncRemoteServi
         // TODO: Get the event type info from somewhere. Configuration?
         score::mw::com::DataTypeMetaInfo type_info{sizeof(echo_service::EchoResponseTiny),
                                                    alignof(echo_service::EchoResponseTiny)};
-        events.push_back({event->event_name()->string_view(), type_info});
+        events.emplace_back(
+            score::mw::com::EventInfo{event->event_name()->string_view(), type_info});
     }
 
     score::mw::com::GenericSkeletonServiceElementInfo create_params;
