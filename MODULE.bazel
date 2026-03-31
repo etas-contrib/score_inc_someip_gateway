@@ -204,9 +204,6 @@ git_override(
 # ============================================================================
 # Base Libraries
 # ============================================================================
-# Patch note: baselibs-multiarch.patch adds multi-arch support for .deb downloads.
-# score_baselibs hardcodes amd64 URLs; patch replaces them with architecture-aware
-# selection (x86_64 or aarch64) based on TARGET_ARCH environment variable.
 bazel_dep(name = "score_baselibs", version = "0.2.4")
 git_override(
     module_name = "score_baselibs",
