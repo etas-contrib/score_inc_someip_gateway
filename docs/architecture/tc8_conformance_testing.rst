@@ -1167,6 +1167,11 @@ The following table records the known limitations of **vsomeip 3.6.1**
 against the OA TC8 v3.0 specification.  This table must be reviewed and
 updated whenever the SOME/IP stack version changes.
 
+Each test listed here is decorated with ``@pytest.mark.xfail(strict=True)``
+so that CI passes despite the known non-conformance.  ``strict=True`` ensures
+that if the limitation is fixed in a future stack version, the unexpected pass
+(XPASS) will cause CI to fail, prompting removal of the marker.
+
 .. list-table::
    :header-rows: 1
    :widths: 25 35 30 10
@@ -1180,19 +1185,19 @@ updated whenever the SOME/IP stack version changes.
        responded to with a NAck (SubscribeEventgroupAck with TTL = 0).
      - Sends a positive SubscribeEventgroupAck (TTL > 0) regardless of
        reserved bits.
-     - **FAIL** —
+     - **XFAIL** —
        ``test_service_discovery::TestSDSubscribeNAck::test_sd_message_19_reserved_field_set``
    * - §5.1.5.5 — SOMEIPSRV_BASIC_03
      - When the DUT receives a message with method_id bit 15 = 1 (event
        notification ID), it MUST NOT send a RESPONSE (message_type 0x80).
      - Sends a RESPONSE (message_type 0x80) for event-ID messages even
        though the spec prohibits it.
-     - **FAIL** —
+     - **XFAIL** —
        ``test_someip_message_format::TestSomeipBasicIdentifiers::test_basic_03_event_method_id_no_response``
    * - §5.1.5.7 — SOMEIPSRV_RPC_08
      - The DUT MUST NOT send a reply to a REQUEST message that already
        carries a non-zero return code.
      - Processes the REQUEST normally and sends a RESPONSE, ignoring the
        return code field.
-     - **FAIL** —
+     - **XFAIL** —
        ``test_someip_message_format::TestSomeipFireAndForgetAndErrors::test_rpc_08_request_with_error_return_code_no_reply``
