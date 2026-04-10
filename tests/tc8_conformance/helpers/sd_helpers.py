@@ -18,8 +18,9 @@ Other helpers (``timing.py``, ``sd_sender.py``) import from here.
 
 Uses blocking sockets (no asyncio).
 
-Note: Loopback multicast needs ``sudo ip route add 224.0.0.0/4 dev lo``.
-Set ``TC8_HOST_IP`` to a real NIC address to avoid this.
+Note: Loopback multicast needs ``bazel test --config=tc8`` (auto-configures
+a private network namespace).  Alternatively, set ``TC8_HOST_IP`` to a
+non-loopback interface address to avoid this.
 """
 
 import socket

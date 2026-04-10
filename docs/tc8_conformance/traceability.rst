@@ -498,7 +498,7 @@ SD Format and Options Compliance
 .. note::
 
    TC8-SDF-028 through TC8-SDF-034 (SOMEIPSRV_OPTIONS_08–14, multicast option
-   fields) require a non-loopback NIC and are skipped on loopback with
+   fields) require a non-loopback interface and are skipped on loopback with
    ``@pytest.mark.network``.
 
 .. note::

@@ -665,7 +665,7 @@ SOME/IP-SD messages sent by ``someipd``, corresponding to OA TC8 v3.0 §5.1.5.1
    matching configuration (OPTIONS_14).
 
    Note: Traces to OA TC8 v3.0 §5.1.5.2 (SD Options format assertions).
-   Multicast option tests (OPTIONS_08–14) require a non-loopback NIC
+   Multicast option tests (OPTIONS_08–14) require a non-loopback interface
    (``@pytest.mark.network``).
 
 .. comp_req:: TC8 SD StopSubscribeEventgroup Entry Wire Format

@@ -36,47 +36,71 @@ coverage status see `docs/architecture/tc8_conformance_testing.rst`.
 
 ## Quick Start
 
-TC8 tests require explicit opt-in via the ``TC8_HOST_IP`` environment
-variable. Without it, ``bazel test //...`` gracefully skips all TC8 targets.
+TC8 tests are **opt-in** via ``--config=tc8``.  This creates a private
+network namespace per test (no ``sudo`` required), configures loopback
+multicast routing, and sets ``TC8_HOST_IP=127.0.0.1`` automatically.
 
 ```bash
-# Run all TC8 tests (loopback — requires multicast route, see below)
-bazel test --test_env=TC8_HOST_IP=127.0.0.1 //tests/tc8_conformance/...
+# Run all TC8 tests (self-configuring — no sudo needed)
+bazel test --config=tc8 //tests/tc8_conformance/...
 
 # Run a specific target
-bazel test --test_env=TC8_HOST_IP=127.0.0.1 //tests/tc8_conformance:tc8_service_discovery
+bazel test --config=tc8 //tests/tc8_conformance:tc8_service_discovery
 
-# Run all TC8 tests by tag
-bazel test --test_env=TC8_HOST_IP=127.0.0.1 --test_tag_filters=tc8 //tests/...
-
-# Use a real network interface (no multicast route needed)
+# Use a non-loopback interface (no namespace wrapper needed)
 bazel test --test_env=TC8_HOST_IP=192.168.x.x //tests/tc8_conformance/...
 ```
 
-> **Note:** ``bazel test //...`` without ``--test_env=TC8_HOST_IP=...`` will
-> skip all TC8 tests with a clear message. This is by design — TC8 tests
-> need network prerequisites that may not be present in every environment.
+> **Note:** ``bazel test //...`` excludes TC8 tests by default (via
+> ``--test_tag_filters=-tc8`` in ``.bazelrc``).  Pass ``--config=tc8``
+> to opt in.
 
 ## Network Setup
 
 Tests join multicast group `224.244.224.245:30490`.
 
-| Environment | ``TC8_HOST_IP`` | Multicast route? | Tests run? |
+| Method | Command | Multicast route | Tests run? |
 |---|---|---|---|
-| Real NIC | ``192.168.x.x`` | Not needed | ✅ Yes |
-| Loopback | ``127.0.0.1`` | ``sudo ip route add 224.0.0.0/4 dev lo`` | ✅ Yes |
-| Loopback, no route | ``127.0.0.1`` | Missing | ⏭️ Skip |
-| Not set | — | — | ⏭️ Skip |
-| Malformed | e.g. ``abc`` | — | ⏭️ Skip |
+| ``--config=tc8`` (recommended) | ``bazel test --config=tc8 //tests/tc8_conformance/...`` | Automatic (private namespace) | ✅ Yes |
+| Non-loopback interface | ``bazel test --test_env=TC8_HOST_IP=192.168.x.x ...`` | Not needed | ✅ Yes |
+| Manual loopback | ``bazel test --test_env=TC8_HOST_IP=127.0.0.1 ...`` | ``sudo ip route add 224.0.0.0/4 dev lo`` | ✅ Yes |
+| ``bazel test //...`` | — | — | ⏭️ Excluded |
 
-```bash
-# Required on loopback (run once per boot)
-sudo ip route add 224.0.0.0/4 dev lo
-```
+### How ``--config=tc8`` works
 
-The ``require_tc8_environment`` fixture in ``conftest.py`` validates all three
-prerequisites (env var presence, IP format, multicast route) and skips the
-entire module with an actionable message when any check fails.
+The ``tc8`` Bazel config (defined in ``.bazelrc``) does three things:
+
+1. **Overrides the tag filter** — ``--test_tag_filters=tc8`` selects TC8 targets
+2. **Sets the host IP** — ``--test_env=TC8_HOST_IP=127.0.0.1``
+3. **Wraps each test** — ``--run_under=//tests/tc8_conformance:tc8_net_wrapper``
+
+The wrapper script (``tc8_net_wrapper.sh``) uses ``unshare --user --net``
+to create a private network namespace per test — no ``sudo`` required.
+Inside the namespace it brings up loopback and adds the multicast route.
+``someipd`` (spawned by the test as a subprocess) inherits the namespace.
+
+If ``unshare`` is unavailable (e.g., restricted AppArmor on Ubuntu 24.10+),
+the wrapper falls back to direct execution.  The ``require_tc8_environment``
+fixture in ``conftest.py`` detects the missing multicast route and skips
+with an actionable message.
+
+### Loopback vs. non-loopback interface
+
+Most TC8 tests work on loopback (``--config=tc8``).  A **non-loopback
+interface** — a named interface such as ``eth0``, ``ens0``, or ``genet0``
+with a routable IP address — is only needed for tests where vsomeip 3.6.1
+behaves differently on loopback:
+
+- **OPTIONS_08–14** (7 tests): vsomeip does not include
+  ``IPv4MulticastOption`` in SubscribeEventgroupAck when bound to loopback.
+  These tests skip automatically on loopback and pass on a non-loopback
+  interface.
+
+Future ETS application-level tests (see ``application/README.md``) will also
+run on loopback via ``--config=tc8``.  All child processes (``gatewayd``,
+``someipd``, ETS app) inherit the private network namespace because they are
+spawned as subprocesses.  See ``docs/architecture/tc8_conformance_testing.rst``
+for the full compatibility analysis.
 
 ## Configuration Templates
 

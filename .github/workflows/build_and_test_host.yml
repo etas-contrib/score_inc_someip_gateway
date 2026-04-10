@@ -53,16 +53,11 @@ jobs:
           bazel test --test_tag_filters=lint //...
       - name: Bazel test targets
         run: |
-          bazel test //... --build_tests_only --test_tag_filters=-tc8
+          bazel test //... --build_tests_only
       - name: Bazel TC8 SOME/IP Conformance Targets
         run: |
-          # Add loopback multicast route for TC8 conformance tests
-          # '|| true' prevents step failure if route already exists on the runner
-          sudo ip route add 224.0.0.0/4 dev lo || true
-
-          # Confirm multicast route was added
-          ip route show | grep "224\." || echo "WARNING: No multicast route found in routing table!"
-
-          bazel test --test_tag_filters=tc8 --test_output=all --test_env=TC8_HOST_IP=127.0.0.1 //tests/tc8_conformance/...
+          # --config=tc8 creates a private network namespace per test (no sudo),
+          # configures loopback multicast routing, and sets TC8_HOST_IP=127.0.0.1.
+          bazel test --config=tc8 --test_output=all //tests/tc8_conformance/...
       - run: df -h
         if: always()

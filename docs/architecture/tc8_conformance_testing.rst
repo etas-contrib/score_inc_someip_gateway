@@ -626,51 +626,91 @@ CI/CD Integration
 -----------------
 
 Protocol conformance tests run on ``ubuntu-24.04`` GitHub Actions runners
-under ``build_and_test_host.yml``. The ``someipd`` process runs as a local
-subprocess in a dedicated CI step that first adds the loopback multicast
-route, then runs all TC8 targets::
+under ``build_and_test_host.yml``.
 
-    sudo ip route add 224.0.0.0/4 dev lo
-    bazel test --test_tag_filters=tc8 --test_output=all \
-               --test_env=TC8_HOST_IP=127.0.0.1 //tests/tc8_conformance/...
+Bazel Configuration
+^^^^^^^^^^^^^^^^^^^^
 
-``TC8_HOST_IP=127.0.0.1`` is passed via ``--test_env``. The DUT fixture
-writes this address into the SOME/IP config template (replacing the
-``__TC8_HOST_IP__`` placeholder), keeping all traffic on loopback.
+TC8 tests are opt-in via ``.bazelrc`` configs::
+
+    # Default: bazel test //... excludes TC8 (no prerequisites needed)
+    test --test_tag_filters=-tc8
+
+    # Opt-in: bazel test --config=tc8 //tests/tc8_conformance/...
+    test:tc8 --test_tag_filters=tc8
+    test:tc8 --test_env=TC8_HOST_IP=127.0.0.1
+    test:tc8 --run_under=//tests/tc8_conformance:tc8_net_wrapper
+
+The ``--config=tc8`` flag does three things:
+
+1. Overrides the default tag filter to select TC8 targets.
+2. Sets ``TC8_HOST_IP=127.0.0.1`` via ``--test_env``.
+3. Wraps each test in ``tc8_net_wrapper.sh`` via ``--run_under``.
+
+Network Namespace Wrapper
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The wrapper script (``tests/tc8_conformance/tc8_net_wrapper.sh``) uses
+``unshare --user --net --map-root-user`` to create a **private network
+namespace** per test process — no ``sudo`` required.  Inside the namespace
+the wrapper brings up loopback and adds the multicast route::
+
+    ip link set lo up
+    ip route add 224.0.0.0/4 dev lo
+
+All child processes (including ``someipd`` spawned by conftest.py and, in
+future, ``gatewayd`` and the ETS application) **inherit the namespace**
+because they are started via ``subprocess.Popen`` within the wrapped
+process.  This means:
+
+- SD multicast (``224.244.224.245``) is routed via ``lo`` inside the
+  namespace without touching the host routing table.
+- Each test target runs in its own isolated namespace — no port conflicts
+  between concurrent targets.
+- No ``sudo`` privileges are needed: ``unshare --user --net`` uses
+  unprivileged user namespaces (enabled by default on Linux ≥ 5.15,
+  Ubuntu 24.04, and Docker with default seccomp).
+
+If ``unshare`` is unavailable (e.g., restricted AppArmor on Ubuntu 24.10+),
+the wrapper falls back to running the test directly.  The
+``require_tc8_environment`` fixture detects the missing multicast route and
+skips gracefully.
+
+CI Workflow
+^^^^^^^^^^^^
+
+The CI workflow (``build_and_test_host.yml``) uses two test steps::
+
+    # Step 1: all tests except TC8 (tag filter is in .bazelrc default)
+    bazel test //... --build_tests_only
+
+    # Step 2: TC8 conformance tests (self-configuring network namespace)
+    bazel test --config=tc8 --test_output=all //tests/tc8_conformance/...
+
+No ``sudo ip route add`` is needed — the wrapper handles it.
 
 Environment-Aware Skip Logic
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 TC8 tests are designed to **skip gracefully** when the environment is not
 ready, so that ``bazel test //...`` never fails due to TC8 prerequisites.
-The ``require_tc8_environment`` autouse fixture in ``conftest.py`` checks
-three conditions before any test in a module runs:
+Two layers of protection exist:
 
-1. **Opt-in gate** — ``TC8_HOST_IP`` must be present in the environment.
-   Without ``--test_env=TC8_HOST_IP=...``, all TC8 tests skip with an
-   actionable message.
+1. **Tag filter exclusion** — ``.bazelrc`` sets
+   ``test --test_tag_filters=-tc8`` so ``bazel test //...`` does not even
+   attempt to run TC8 targets.
 
-2. **IP validation** — ``TC8_HOST_IP`` must be a valid IPv4 address.
-   A malformed value (e.g. a typo) triggers a skip instead of producing
-   cryptic socket errors.
+2. **Fixture guard** — if TC8 targets are run without the wrapper (e.g.,
+   via ``--test_env=TC8_HOST_IP=...`` without ``--config=tc8``), the
+   ``require_tc8_environment`` autouse fixture in ``conftest.py`` checks
+   three conditions:
 
-3. **Multicast route** — when ``TC8_HOST_IP`` is a loopback address, the
-   SOME/IP stack resolves its SD multicast interface from the system routing
-   table. Without an explicit loopback multicast route, SD traffic goes via
-   a physical NIC and never reaches the test sockets.  The fixture runs
-   ``ip route get 224.244.224.245`` and verifies the output contains
-   ``dev lo``; if not, it skips with the ``sudo ip route add`` instruction.
+   a. **Opt-in gate** — ``TC8_HOST_IP`` must be present in the environment.
+   b. **IP validation** — ``TC8_HOST_IP`` must be a valid IPv4 address.
+   c. **Multicast route** — when using a loopback address, the fixture
+      verifies that ``ip route get 224.244.224.245`` resolves to ``dev lo``.
 
-This means:
-
-- ``bazel test //...`` — TC8 tests skip (no ``TC8_HOST_IP``)
-- ``bazel test --test_env=TC8_HOST_IP=127.0.0.1 //tests/tc8_conformance/...``
-  without the multicast route — tests skip with route setup instructions
-- CI (multicast route + ``TC8_HOST_IP``) — tests execute normally
-
-Additionally, the general test step in CI uses ``--test_tag_filters=-tc8``
-to exclude TC8 targets from the main test sweep. TC8 tests run in their own
-dedicated step.
+   If any check fails, the module skips with an actionable message.
 
 Port Isolation and Parallelism
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -688,6 +728,106 @@ accuracy or lifecycle correctness.
 Application-level tests (when implemented) will follow the same pattern.
 If multi-node isolation is needed, the Docker Compose setup at
 ``tests/integration/docker_setup/`` can be extended.
+
+.. _network_configurations:
+
+Network Configurations
+^^^^^^^^^^^^^^^^^^^^^^^
+
+Two network configurations are supported.  The choice depends on what test
+categories need to run.
+
+.. list-table::
+   :header-rows: 1
+   :widths: 20 30 25 25
+
+   * - Configuration
+     - Command
+     - Network
+     - Multicast
+   * - **Loopback** (default, CI)
+     - ``bazel test --config=tc8 //tests/tc8_conformance/...``
+     - Private namespace, ``lo`` only
+     - Automatic (wrapper)
+   * - **Non-loopback interface**
+     - ``bazel test --test_env=TC8_HOST_IP=<ip> //tests/tc8_conformance/...``
+     - Host network, named interface (e.g. ``eth0``)
+     - Native (kernel routes multicast via the interface)
+
+**Loopback** is the default for CI and local development.  All processes
+(pytest, ``someipd``, and future ``gatewayd`` / ETS application) run inside
+an isolated network namespace with loopback multicast.
+
+**Non-loopback interface** means a named interface (``eth0``, ``ens0``,
+``genet0``, etc.) with a routable IP address — as opposed to ``lo`` /
+``127.0.0.1``.  This is required for tests that exercise vsomeip behaviour
+that differs between loopback and a real interface:
+
+- **OPTIONS_08–14** (IPv4 Multicast Option sub-fields): vsomeip 3.6.1 does
+  not include ``IPv4MulticastOption`` in SubscribeEventgroupAck when bound
+  to a loopback address.  These 7 tests skip automatically on loopback and
+  require ``TC8_HOST_IP`` set to a non-loopback address.
+- **ETS_150** (``triggerEventUINT8Multicast``): multicast event delivery may
+  behave differently on loopback vs. a named interface depending on the
+  SOME/IP stack's multicast group join implementation.
+
+The non-loopback configuration does **not** use the ``--run_under`` wrapper
+(no namespace needed — the host kernel handles multicast routing natively).
+It also does not require ``sudo`` — multicast is routed by default on
+non-loopback interfaces.
+
+Impact on Future ETS Application-Level Tests
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The 49 blocked ETS tests (see `ETS Application Gap`_) require a 4-process
+topology: pytest → TC8 Service + ``gatewayd`` + ``someipd`` + TC8 Client.
+The network namespace wrapper is **compatible** with this topology because
+all four processes are spawned as subprocesses and inherit the namespace:
+
+.. list-table::
+   :header-rows: 1
+   :widths: 30 10 25 35
+
+   * - ETS Category
+     - Count
+     - Network Need
+     - Loopback Compatible?
+   * - Serialization / Echo (ETS_001–053, 063–073)
+     - 44
+     - LoLa IPC + loopback SOME/IP
+     - ✅ Yes — all processes in same namespace
+   * - Control methods (ETS_089, 164)
+     - 2
+     - Same as above
+     - ✅ Yes
+   * - Event triggers (ETS_146–151)
+     - 6
+     - Loopback UDP/TCP events
+     - ✅ Yes — multicast via ``lo``
+   * - Field accessors (ETS_166–168)
+     - 3
+     - Loopback field access
+     - ✅ Yes
+
+The ``conftest.py`` subprocess fixture pattern (``launch_someipd`` /
+``terminate_someipd``) will be extended for the ETS application and
+``gatewayd``.  No wrapper changes are needed — new child processes
+automatically inherit the calling process's network namespace.
+
+**Multicast event tests** (``ETS_150 triggerEventUINT8Multicast``,
+``ETS_104 SD_ClientServiceGetLastValueOfEventUDPMulticast``): these tests
+exercise multicast event delivery to group ``239.0.0.1:40490`` (configured
+in eventgroup ``0x4465``).  On loopback, multicast group join
+(``IP_ADD_MEMBERSHIP``) and multicast send (``IP_MULTICAST_IF``) both work
+within the private namespace.  The wrapper's ``ip route add 224.0.0.0/4 dev
+lo`` covers the entire Class D range (``224.0.0.0`` through
+``239.255.255.255``), including ``239.0.0.1``.
+
+**Tests that will continue to skip on loopback**: OPTIONS_08–14 (7 tests)
+skip because vsomeip 3.6.1 omits ``IPv4MulticastOption`` from
+SubscribeEventgroupAck when bound to loopback.  This is a vsomeip stack
+behaviour, not a namespace or routing limitation.  These tests pass on a
+non-loopback interface.
 
 TC8 Specification Alignment Analysis
 -------------------------------------
@@ -839,9 +979,10 @@ The table below uses these status labels:
 - **Complete** — every specification item in this category has a passing test.
 - **Near-complete** — one or two items do not yet have a test, but they can
   be added using the existing framework. No new software is needed.
-- **Complete (loopback skip)** — all tests are written and pass on real
-  hardware. Tests that require a physical network card for multicast skip
-  automatically in CI (loopback has no multicast NIC).
+- **Complete (loopback skip)** — all tests are written and pass on a
+  non-loopback interface. Tests that require vsomeip to include
+  ``IPv4MulticastOption`` in SD messages skip automatically on loopback
+  (see `Network Configurations`_).
 
 .. rubric:: SOMEIPSRV Coverage Mapping
 
@@ -869,9 +1010,10 @@ The table below uses these status labels:
      - **Complete** (7 skip in CI)
      - IPv4 Endpoint Option (OPTIONS_01–07), IPv4 Multicast Option
        (OPTIONS_08–14), and TCP Endpoint Option (OPTIONS_15) are all tested.
-       The 7 multicast sub-field tests (OPTIONS_08–14) skip in loopback CI
-       because they require a real multicast network interface. They run and
-       pass on hardware with a physical Ethernet card.
+       The 7 multicast sub-field tests (OPTIONS_08–14) skip on loopback
+       because vsomeip 3.6.1 does not include ``IPv4MulticastOption`` in
+       SubscribeEventgroupAck when bound to a loopback address.  They run
+       and pass on a non-loopback interface (see `Network Configurations`_).
    * - SD Message Entries (5.1.5.3)
      - 17
      - 17

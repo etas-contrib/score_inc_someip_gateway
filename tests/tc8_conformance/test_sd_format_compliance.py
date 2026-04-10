@@ -970,7 +970,7 @@ class TestSdOptionsMulticast:
 
         if ipaddress.ip_address(host_ip).is_loopback:
             pytest.skip(
-                "OPTIONS_08: Multicast endpoint option in SubscribeAck requires a real NIC. "
+                "OPTIONS_08: Multicast endpoint option in SubscribeAck requires a non-loopback interface. "
                 "Set TC8_HOST_IP to a non-loopback address."
             )
 
@@ -1010,7 +1010,7 @@ class TestSdOptionsMulticast:
 
         if ipaddress.ip_address(host_ip).is_loopback:
             pytest.skip(
-                "OPTIONS_09: Multicast endpoint option in SubscribeAck requires a real NIC. "
+                "OPTIONS_09: Multicast endpoint option in SubscribeAck requires a non-loopback interface. "
                 "Set TC8_HOST_IP to a non-loopback address."
             )
 
@@ -1050,7 +1050,7 @@ class TestSdOptionsMulticast:
 
         if ipaddress.ip_address(host_ip).is_loopback:
             pytest.skip(
-                "OPTIONS_10: Multicast endpoint option in SubscribeAck requires a real NIC. "
+                "OPTIONS_10: Multicast endpoint option in SubscribeAck requires a non-loopback interface. "
                 "Set TC8_HOST_IP to a non-loopback address."
             )
 
@@ -1090,7 +1090,7 @@ class TestSdOptionsMulticast:
 
         if ipaddress.ip_address(host_ip).is_loopback:
             pytest.skip(
-                "OPTIONS_11: Multicast endpoint option in SubscribeAck requires a real NIC. "
+                "OPTIONS_11: Multicast endpoint option in SubscribeAck requires a non-loopback interface. "
                 "Set TC8_HOST_IP to a non-loopback address."
             )
 
@@ -1129,7 +1129,7 @@ class TestSdOptionsMulticast:
 
         if ipaddress.ip_address(host_ip).is_loopback:
             pytest.skip(
-                "OPTIONS_12: Multicast endpoint option in SubscribeAck requires a real NIC. "
+                "OPTIONS_12: Multicast endpoint option in SubscribeAck requires a non-loopback interface. "
                 "Set TC8_HOST_IP to a non-loopback address."
             )
 
@@ -1169,7 +1169,7 @@ class TestSdOptionsMulticast:
 
         if ipaddress.ip_address(host_ip).is_loopback:
             pytest.skip(
-                "OPTIONS_13: Multicast endpoint option in SubscribeAck requires a real NIC. "
+                "OPTIONS_13: Multicast endpoint option in SubscribeAck requires a non-loopback interface. "
                 "Set TC8_HOST_IP to a non-loopback address."
             )
 
@@ -1207,7 +1207,7 @@ class TestSdOptionsMulticast:
 
         if ipaddress.ip_address(host_ip).is_loopback:
             pytest.skip(
-                "OPTIONS_14: Multicast endpoint option in SubscribeAck requires a real NIC. "
+                "OPTIONS_14: Multicast endpoint option in SubscribeAck requires a non-loopback interface. "
                 "Set TC8_HOST_IP to a non-loopback address."
             )
 

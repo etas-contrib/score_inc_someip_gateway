@@ -216,7 +216,8 @@ def require_tc8_environment() -> None:
        instead of producing cryptic socket errors later.
 
     3. **Multicast route** — when ``host_ip`` is a loopback address, the
-       kernel's default multicast route typically goes via a physical NIC,
+       kernel's default multicast route typically goes via a non-loopback
+       interface (e.g. ``eth0``),
        not ``lo``.  The SOME/IP stack may resolves its SD multicast interface
        from the system routing table (``ip route get 224.x.x.x``), so SD
        traffic bypasses loopback and never reaches the test sockets.  We
@@ -253,7 +254,8 @@ def require_tc8_environment() -> None:
             if "dev lo" not in result.stdout:
                 pytest.skip(
                     "Multicast route does not go via loopback.  "
-                    "Add it with: sudo ip route add 224.0.0.0/4 dev lo"
+                    "Run with: bazel test --config=tc8 "
+                    "//tests/tc8_conformance/..."
                 )
         except (FileNotFoundError, subprocess.TimeoutExpired):
             pass  # 'ip' not available — optimistically proceed

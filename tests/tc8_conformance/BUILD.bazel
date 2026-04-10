@@ -15,6 +15,16 @@
 load("@score_tooling//:defs.bzl", "score_py_pytest")
 load("//bazel/tools:json_schema_validator.bzl", "validate_json_schema_test")
 
+# Network namespace wrapper for TC8 tests.  Used via --config=tc8 which sets
+# --run_under=//tests/tc8_conformance:tc8_net_wrapper.  Creates a private
+# network namespace with loopback multicast routing (no sudo required).
+sh_binary(
+    name = "tc8_net_wrapper",
+    srcs = ["tc8_net_wrapper.sh"],
+    target_compatible_with = ["@platforms//os:linux"],
+    visibility = ["//visibility:public"],
+)
+
 _COMMON_DEPS = [
     "//src/someipd",
     "@score_someip_gateway_pip//someip",

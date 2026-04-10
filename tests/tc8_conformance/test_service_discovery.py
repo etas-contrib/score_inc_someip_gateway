@@ -544,13 +544,13 @@ class TestSDMulticastEventgroup:
     ) -> None:
         """TC8-SD-013: Subscribing to multicast eventgroup 0x4465 yields a multicast endpoint option."""
 
-        # On loopback interfaces, IP multicast routing is unavailable (127.x does not support
-        # multicast). The DUT will not include a multicast endpoint option in SUBSCRIBE_ACK.
-        # Require a real NIC.
+        # On loopback, vsomeip 3.6.1 does not include IPv4MulticastOption in
+        # SUBSCRIBE_ACK.  Requires a non-loopback interface.
         if ipaddress.ip_address(host_ip).is_loopback:
             pytest.skip(
-                "TC8-SD-013: Multicast endpoint option in SUBSCRIBE_ACK requires a real NIC. "
-                "Set TC8_HOST_IP to a non-loopback address (e.g. export TC8_HOST_IP=192.168.x.y)."
+                "TC8-SD-013: Multicast endpoint option in SUBSCRIBE_ACK requires a "
+                "non-loopback interface. "
+                "Set TC8_HOST_IP to a non-loopback address (e.g. TC8_HOST_IP=192.168.x.y)."
             )
 
         assert someipd_dut.poll() is None, "someipd DUT is not running"

@@ -332,7 +332,7 @@ TC8-SD-013 — Multicast Eventgroup Option
 :Test Function: ``test_tc8_sd_013_subscribe_ack_has_multicast_option``
 :Requirement: ``comp_req__tc8_conformance__sd_mcast_eg``
 :DUT Config: ``tc8_someipd_sd.json``
-:Marker: ``@pytest.mark.network`` (requires non-loopback NIC)
+:Marker: ``@pytest.mark.network`` (requires non-loopback interface)
 
 **Purpose:**
 Verify that SubscribeEventgroupAck for a multicast eventgroup includes
@@ -623,7 +623,7 @@ TC8-EVT-005 — Multicast Notification Delivery
 :Test Function: ``test_tc8_evt_005_multicast_notification_delivery``
 :Requirement: ``comp_req__tc8_conformance__evt_subscription``
 :DUT Config: ``tc8_someipd_service.json``
-:Marker: ``@pytest.mark.network`` (requires non-loopback NIC)
+:Marker: ``@pytest.mark.network`` (requires non-loopback interface)
 
 **Purpose:**
 Verify that notifications for a multicast eventgroup arrive on the
@@ -1565,14 +1565,14 @@ TC8-SDF-028 — Multicast Option: Length = 0x0009
 
 :OA Reference: §5.1.5.2 — SOMEIPSRV_OPTIONS_08
 :Requirement: ``comp_req__tc8_conformance__sd_options_fields``
-:Marker: ``@pytest.mark.network`` (requires non-loopback NIC)
+:Marker: ``@pytest.mark.network`` (requires non-loopback interface)
 :Test Function: ``TestSdOptionsMulticast::test_options_08_multicast_option_length_is_nine``
 
 **Purpose:**
 Verify that the IPv4MulticastOption in SubscribeEventgroupAck has length field 0x0009.
 
 **Preconditions:**
-Non-loopback NIC (TC8_HOST_IP set); eventgroup 0x4465 configured with multicast address.
+Non-loopback interface (TC8_HOST_IP set); eventgroup 0x4465 configured with multicast address.
 
 **Stimulus:**
 Send SubscribeEventgroup for eventgroup 0x4465; capture Ack and extract multicast option.
@@ -1585,7 +1585,7 @@ TC8-SDF-029 — Multicast Option: Type = 0x14
 
 :OA Reference: §5.1.5.2 — SOMEIPSRV_OPTIONS_09
 :Requirement: ``comp_req__tc8_conformance__sd_options_fields``
-:Marker: ``@pytest.mark.network`` (requires non-loopback NIC)
+:Marker: ``@pytest.mark.network`` (requires non-loopback interface)
 :Test Function: ``TestSdOptionsMulticast::test_options_09_multicast_option_type_is_0x14``
 
 **Purpose:**
@@ -1602,7 +1602,7 @@ TC8-SDF-030 — Multicast Option: Reserved = 0x00
 
 :OA Reference: §5.1.5.2 — SOMEIPSRV_OPTIONS_10
 :Requirement: ``comp_req__tc8_conformance__sd_options_fields``
-:Marker: ``@pytest.mark.network`` (requires non-loopback NIC)
+:Marker: ``@pytest.mark.network`` (requires non-loopback interface)
 :Test Function: ``TestSdOptionsMulticast::test_options_10_multicast_option_reserved_is_zero``
 
 **Purpose:**
@@ -1619,7 +1619,7 @@ TC8-SDF-031 — Multicast Option: Address Matches Config
 
 :OA Reference: §5.1.5.2 — SOMEIPSRV_OPTIONS_11
 :Requirement: ``comp_req__tc8_conformance__sd_options_fields``
-:Marker: ``@pytest.mark.network`` (requires non-loopback NIC)
+:Marker: ``@pytest.mark.network`` (requires non-loopback interface)
 :Test Function: ``TestSdOptionsMulticast::test_options_11_multicast_address_matches_config``
 
 **Purpose:**
@@ -1637,7 +1637,7 @@ TC8-SDF-032 — Multicast Option: Reserved Before Port = 0x00
 
 :OA Reference: §5.1.5.2 — SOMEIPSRV_OPTIONS_12
 :Requirement: ``comp_req__tc8_conformance__sd_options_fields``
-:Marker: ``@pytest.mark.network`` (requires non-loopback NIC)
+:Marker: ``@pytest.mark.network`` (requires non-loopback interface)
 :Test Function: ``TestSdOptionsMulticast::test_options_12_multicast_option_reserved_before_port_is_zero``
 
 **Purpose:**
@@ -1654,7 +1654,7 @@ TC8-SDF-033 — Multicast Option: L4 Protocol = 0x11 (UDP)
 
 :OA Reference: §5.1.5.2 — SOMEIPSRV_OPTIONS_13
 :Requirement: ``comp_req__tc8_conformance__sd_options_fields``
-:Marker: ``@pytest.mark.network`` (requires non-loopback NIC)
+:Marker: ``@pytest.mark.network`` (requires non-loopback interface)
 :Test Function: ``TestSdOptionsMulticast::test_options_13_multicast_option_protocol_is_udp``
 
 **Purpose:**
@@ -1671,7 +1671,7 @@ TC8-SDF-034 — Multicast Option: Port Matches Config
 
 :OA Reference: §5.1.5.2 — SOMEIPSRV_OPTIONS_14
 :Requirement: ``comp_req__tc8_conformance__sd_options_fields``
-:Marker: ``@pytest.mark.network`` (requires non-loopback NIC)
+:Marker: ``@pytest.mark.network`` (requires non-loopback interface)
 :Test Function: ``TestSdOptionsMulticast::test_options_14_multicast_port_matches_config``
 
 **Purpose:**
@@ -2364,7 +2364,7 @@ TC8-SDLC-024 — Last Value Delivered via UDP Multicast
 :Test Function: ``TestSDSubscribeLifecycleAdvanced::test_ets_104_last_value_udp_multicast``
 
 **Preconditions:**
-Requires physical multicast NIC; skipped automatically on loopback.
+Requires a non-loopback interface; skipped automatically on loopback.
 
 **Stimulus:**
 Subscribe to multicast eventgroup; capture NOTIFICATION on configured multicast group.
@@ -2380,7 +2380,7 @@ TC8-SDLC-025 — Multicast FindService Elicits Offer Response
 :Test Function: ``TestSDFindServiceAdvanced::test_ets_127_multicast_findservice_response``
 
 **Preconditions:**
-Requires physical multicast NIC; skipped automatically on loopback.
+Requires a non-loopback interface; skipped automatically on loopback.
 
 **Stimulus:**
 Send SD FindService for the configured service via multicast.
