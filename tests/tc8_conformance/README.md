@@ -74,15 +74,14 @@ The ``tc8`` Bazel config (defined in ``.bazelrc``) does three things:
 2. **Sets the host IP** — ``--test_env=TC8_HOST_IP=127.0.0.1``
 3. **Wraps each test** — ``--run_under=//tests/tc8_conformance:tc8_net_wrapper``
 
-The wrapper script (``tc8_net_wrapper.sh``) uses ``unshare --user --net``
-to create a private network namespace per test — no ``sudo`` required.
-Inside the namespace it brings up loopback and adds the multicast route.
-``someipd`` (spawned by the test as a subprocess) inherits the namespace.
+The wrapper script (``tc8_net_wrapper.sh``) uses ``unshare`` to create a
+private network namespace per test with loopback and multicast routing —
+no ``sudo`` required.  ``someipd`` (spawned as a subprocess) inherits
+the namespace.
 
-If ``unshare`` is unavailable (e.g., restricted AppArmor on Ubuntu 24.10+),
-the wrapper falls back to direct execution.  The ``require_tc8_environment``
-fixture in ``conftest.py`` detects the missing multicast route and skips
-with an actionable message.
+If namespace creation fails, the wrapper falls back to direct execution
+with a warning.  ``conftest.py`` detects the missing multicast route and
+skips with an actionable message.
 
 ### Loopback vs. non-loopback interface
 

@@ -651,30 +651,18 @@ Network Namespace Wrapper
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The wrapper script (``tests/tc8_conformance/tc8_net_wrapper.sh``) uses
-``unshare --user --net --map-root-user`` to create a **private network
-namespace** per test process — no ``sudo`` required.  Inside the namespace
-the wrapper brings up loopback and adds the multicast route::
-
-    ip link set lo up
-    ip route add 224.0.0.0/4 dev lo
+``unshare`` to create a **private network namespace** per test process
+with loopback and multicast routing — no ``sudo`` required.
 
 All child processes (including ``someipd`` spawned by conftest.py and, in
 future, ``gatewayd`` and the ETS application) **inherit the namespace**
 because they are started via ``subprocess.Popen`` within the wrapped
-process.  This means:
+process.  Each test target runs in its own isolated namespace — no port
+conflicts between concurrent targets.
 
-- SD multicast (``224.244.224.245``) is routed via ``lo`` inside the
-  namespace without touching the host routing table.
-- Each test target runs in its own isolated namespace — no port conflicts
-  between concurrent targets.
-- No ``sudo`` privileges are needed: ``unshare --user --net`` uses
-  unprivileged user namespaces (enabled by default on Linux ≥ 5.15,
-  Ubuntu 24.04, and Docker with default seccomp).
-
-If ``unshare`` is unavailable (e.g., restricted AppArmor on Ubuntu 24.10+),
-the wrapper falls back to running the test directly.  The
-``require_tc8_environment`` fixture detects the missing multicast route and
-skips gracefully.
+If namespace creation fails, the wrapper falls back to direct execution
+with a warning.  The ``require_tc8_environment`` fixture detects the
+missing multicast route and skips gracefully.
 
 CI Workflow
 ^^^^^^^^^^^^
@@ -700,7 +688,7 @@ Two layers of protection exist:
    ``test --test_tag_filters=-tc8`` so ``bazel test //...`` does not even
    attempt to run TC8 targets.
 
-2. **Fixture guard** — if TC8 targets are run without the wrapper (e.g.,
+2. **Fixture guard** — if TC8 targets are run without the namespace (e.g.,
    via ``--test_env=TC8_HOST_IP=...`` without ``--config=tc8``), the
    ``require_tc8_environment`` autouse fixture in ``conftest.py`` checks
    three conditions:

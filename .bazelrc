@@ -90,9 +90,8 @@ common --@score_communication//score/mw/com/flags:tracing_library=@score_baselib
 test --test_tag_filters=-tc8
 
 # Opt-in: `bazel test --config=tc8 //tests/tc8_conformance/...`
-# Creates a private network namespace per test (no sudo), configures loopback
-# multicast routing, then runs the test.  Requires unprivileged user namespaces
-# (enabled by the CI apparmor action; enabled by --privileged in devcontainer).
+# Wraps each test in a private network namespace with loopback multicast
+# routing (no sudo required).
 test:tc8 --test_tag_filters=tc8
 test:tc8 --test_env=TC8_HOST_IP=127.0.0.1
 test:tc8 --run_under=//tests/tc8_conformance:tc8_net_wrapper

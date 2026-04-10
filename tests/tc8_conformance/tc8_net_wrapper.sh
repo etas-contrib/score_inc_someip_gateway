@@ -11,11 +11,8 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 # *******************************************************************************
-# Creates a private network namespace (no sudo), configures loopback
-# multicast routing, then exec's the wrapped test command.
-# Falls back to running without namespace if unshare is unavailable
-# (conftest.py's require_tc8_environment fixture will detect missing
-# multicast route and skip gracefully).
+# Creates a private network namespace with loopback multicast routing,
+# then exec's the wrapped test command.
 set -euo pipefail
 
 # Try namespace isolation; fall back to direct execution.
@@ -28,4 +25,5 @@ unshare --user --net --map-root-user -- bash -c '
 ' -- "$@" && exit 0
 
 # Fallback: unshare not available — run directly, let conftest.py handle it.
+echo "WARNING: tc8_net_wrapper.sh: failed to create network namespace." >&2
 exec "$@"
