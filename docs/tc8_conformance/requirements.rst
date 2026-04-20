@@ -133,11 +133,6 @@ the external OA standard, and the documentation files relate to each other.
      collections "**tests/tc8_conformance/*.py**\nPython test functions\n(pytest + raw SOME/IP)" as Tests #f5f5f5
    }
 
-   package "TC8 Conformance Docs" {
-     file "**test_specification.rst**\nDetailed test cases:\npurpose, stimuli,\nexpected results" as TestSpec #f5f5f5
-     file "**traceability.rst**\nOA Spec ID →\nInternal ID →\nRequirement →\nTest Function" as Trace #f5f5f5
-   }
-
    package "External Standard" {
      rectangle "**OA TC8 Spec**\nChapter 5 — SOME/IP\nSOMEIPSRV_*, SOMEIP_ETS_*" as OASpec #e0e0e0
    }
@@ -148,14 +143,9 @@ the external OA standard, and the documentation files relate to each other.
    FReq -up-> SReq : <<satisfies>>
    CReq -up-> FReq : <<satisfies>>
 
-   ' Test verification
+   ' Test verification and external standard traceability
    Tests -up-> CReq : <<verifies>>
-
-   ' Documentation and Traceability
-   TestSpec -up-> COMP : <<describes>>
-   Trace -up-> COMP : <<maps to>>
-   Trace --> Tests : <<identifies>>
-   Trace --> OASpec : <<references>>
+   Tests -right-> OASpec : <<traces to>>
 
    @enduml
 
@@ -176,7 +166,9 @@ The relationships work as follows:
 4. **Test → External Standard** (traceability matrix):
    The :doc:`traceability` maps each internal test ID to the
    corresponding OA TC8 specification test case, closing the chain
-   from external standard to verified implementation.
+   from external standard to verified implementation.  The
+   :doc:`test_specification` provides detailed test case descriptions
+   (purpose, stimuli, expected results) for each component requirement.
 
 Requirement Areas
 ^^^^^^^^^^^^^^^^^

@@ -5,7 +5,7 @@
         "console": "true",
         "file": {
             "enable": "false",
-            "path": "/tmp/vsomeip-tc8.log"
+            "path": "__TC8_LOG_DIR__/vsomeip-tc8.log"
         },
         "dlt": "false"
     },

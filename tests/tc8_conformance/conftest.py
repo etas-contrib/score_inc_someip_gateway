@@ -67,7 +67,7 @@ def find_mw_com_config() -> Path:
 
 def render_someip_config(config_name: str, host_ip: str, dest_dir: Path) -> Path:
     """Replace ``__TC8_HOST_IP__``, ``__TC8_SD_PORT__``, ``__TC8_SVC_PORT__``,
-    and ``__TC8_SVC_TCP_PORT__`` in a config template.
+    ``__TC8_SVC_TCP_PORT__``, and ``__TC8_LOG_DIR__`` in a config template.
 
     Writes the rendered config to *dest_dir* and returns the path.
 
@@ -88,6 +88,7 @@ def render_someip_config(config_name: str, host_ip: str, dest_dir: Path) -> Path
         .replace("__TC8_SD_PORT__", sd_port)
         .replace("__TC8_SVC_PORT__", svc_port)
         .replace("__TC8_SVC_TCP_PORT__", svc_tcp_port)
+        .replace("__TC8_LOG_DIR__", str(dest_dir))
     )
     config_path = dest_dir / config_name
     config_path.write_text(rendered, encoding="utf-8")
