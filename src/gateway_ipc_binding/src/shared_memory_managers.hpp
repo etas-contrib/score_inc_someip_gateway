@@ -19,6 +19,7 @@
 #include <score/gateway_ipc_binding/gateway_ipc_binding.hpp>
 #include <score/gateway_ipc_binding/shared_memory_slot_manager.hpp>
 #include <unordered_map>
+#include <vector>
 
 #include "key.hpp"
 
@@ -33,8 +34,7 @@ class Shared_memory_managers {
     };
 
     std::unordered_map<Key_t, Shared_memory_slot_manager::Uptr> m_slot_managers;
-    std::unordered_map<Key_t, std::unordered_map<Slot_handle, Shared_memory_allocation>>
-        m_shared_memory_allocations;
+    std::unordered_map<Key_t, std::vector<Shared_memory_allocation>> m_shared_memory_allocations;
 
    public:
     Shared_memory_managers(Shared_memory_manager_factory::Sptr slot_manager_factory, Keys& keys)
@@ -79,9 +79,12 @@ class Shared_memory_managers {
             return;
         }
 
-        auto& allocations_by_handle = m_shared_memory_allocations[key];
+        auto& allocations = m_shared_memory_allocations[key];
         auto const slot_handle = payload.get_slot_handle();
-        auto& allocation = allocations_by_handle[slot_handle];
+        if (slot_handle >= allocations.size()) {
+            allocations.resize(slot_handle + 1);
+        }
+        auto& allocation = allocations[slot_handle];
         if (!allocation.payload.has_value()) {
             allocation.payload = std::move(payload);
         }
@@ -94,23 +97,22 @@ class Shared_memory_managers {
             return;
         }
 
-        auto& allocations_by_handle = allocations_it->second;
-        auto allocation_it = allocations_by_handle.find(msg.handle.slot_index);
-        if (allocation_it == allocations_by_handle.end()) {
+        auto& allocations = allocations_it->second;
+        auto const slot_handle = static_cast<std::size_t>(msg.handle.slot_index);
+        if (slot_handle >= allocations.size()) {
             return;
         }
 
-        auto& allocation = allocation_it->second;
+        auto& allocation = allocations[slot_handle];
+        if (allocation.pending_consumers == 0U) {
+            return;
+        }
         if (allocation.pending_consumers > 1U) {
             --allocation.pending_consumers;
             return;
         }
 
-        allocations_by_handle.erase(allocation_it);
-
-        if (allocations_by_handle.empty()) {
-            m_shared_memory_allocations.erase(allocations_it);
-        }
+        allocation = Shared_memory_allocation{};
     }
 };
 

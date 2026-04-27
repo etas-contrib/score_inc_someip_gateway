@@ -36,7 +36,7 @@ class ISharedMemoryResource;
 
 namespace score::gateway_ipc_binding {
 
-/// \brief Handle identifying a shared memory slot
+/// \brief Handle identifying a shared memory slot. Ranges from 0 to slot_count-1.
 using Slot_handle = std::size_t;
 
 /// \brief Byte used for shared memory payloads
