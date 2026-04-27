@@ -23,9 +23,10 @@ This directory contains the complete memory profiling and performance analysis u
 ✅ **Build Status**: Successful
 ✅ **Profiling Status**: Completed (memusage + Massif)
 ✅ **Memory Status**: No leaks detected
-🎯 **Peak Memory**: 173 KB useful heap (Massif)
-⚡ **Latency**: ~3.6 microseconds per event
+🎯 **Peak Memory**: 172 KB useful heap (Massif)
+⚡ **Latency**: ~3.5 microseconds per event
 📊 **Iterations**: 1,000,000 @ 1 MB payload
+🚀 **Zero per-iteration heap allocations**
 
 ## File Inventory
 
@@ -54,12 +55,12 @@ Date:               2026-04-27
 ## Key Findings
 
 ### Memory Behavior
-- **Total Heap Allocated**: 168 MB cumulative (176,398,085 bytes over 1M iterations)
-- **Peak Heap Usage**: 174 KB (memusage), 173 KB useful (Massif)
+- **Total Heap Allocated**: 197 KB cumulative (201,941 bytes — all during setup)
+- **Peak Heap Usage**: 172 KB (memusage), 172 KB useful (Massif)
 - **Peak Stack Usage**: 11 KB
-- **Allocation Pattern**: 99% of allocations are 176-191 bytes (one per iteration)
-- **Total malloc calls**: 1,005,137 (down 83% from previous 6M+)
-- **No Memory Leaks**: Perfect balance of malloc (1,005,137) + calloc (3) vs free (1,005,141) calls
+- **Allocation Pattern**: Zero per-iteration allocations — all 373 mallocs occur during initialization
+- **Total malloc calls**: 373 (down 99.96% from previous 1M+)
+- **No Memory Leaks**: Perfect balance of malloc (373) + calloc (3) vs free (377) calls
 
 ## Profiling Tools Used
 
@@ -83,21 +84,21 @@ Date:               2026-04-27
 
 ### Efficiency Observations
 - **Flat heap profile**: Zero growth across 1M iterations confirms no leaks
-- **~6 allocations per iteration**: Small IPC control structures, all promptly freed
+- **Zero allocations per iteration**: All heap allocation eliminated from the hot path
 - **Stable memory usage**: Peak reached during initialization, never exceeded
-- **Logging dominates setup**: 25% of peak heap is console logging infrastructure
+- **Logging dominates setup**: 23% of peak heap is console logging infrastructure
 
 ## Recommendations
 
 ### Immediate Actions
 - ✅ Memory profile confirms production readiness
-- ✅ 173 KB peak heap is safe for embedded systems
+- ✅ 172 KB peak heap is safe for embedded systems
 - ✅ No optimizations required for memory usage
-- ✅ Allocation count reduced 83% vs previous run (allocation path consolidation)
+- ✅ Zero per-iteration allocations — hot path is fully allocation-free
 
 ### Further Investigation
 - Consider CPU profiling (perf/FlameGraph) for hotspot analysis
-- Reduce logging overhead by disabling console backend in production (~24% of peak heap)
+- Reduce logging overhead by disabling console backend in production (~23% of peak heap)
 - Test with real-time scheduling priorities
 
 ## Usage Examples

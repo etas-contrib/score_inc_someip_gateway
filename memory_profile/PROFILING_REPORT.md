@@ -28,93 +28,97 @@ SPDX-License-Identifier: Apache-2.0
 ## Profiling Setup
 - **Tools**: GNU memusage + Valgrind Massif 3.22.0
 - **Workload**: 1,000,000 iterations, 1 MB payload
-- **Test Duration**: ~5.7 seconds (memusage), ~53 seconds (Massif)
+- **Test Duration**: ~5.4 seconds (memusage), ~48 seconds (Massif)
 - **Profiling Data**: `memusage.data`, `memusage.png`, `massif.out.1`
 
 ## Memory Usage Summary
 
 ### GNU memusage Statistics
-- **Total Heap Allocated**: 176,398,085 bytes (~168 MB cumulative over 1M iterations)
-- **Peak Heap Usage**: 178,362 bytes (~174 KB)
+- **Total Heap Allocated**: 201,941 bytes (~197 KB cumulative — all during setup)
+- **Peak Heap Usage**: 176,034 bytes (~172 KB)
 - **Peak Stack Usage**: 10,960 bytes (~11 KB)
 
 ### Allocation Operations
-- **Total malloc calls**: 1,005,137
+- **Total malloc calls**: 373
 - **Total realloc calls**: 0
 - **Total calloc calls**: 3
-- **Total free calls**: 1,005,141
+- **Total free calls**: 377
 - **Failed allocations**: 0
 
 ### Valgrind Massif Statistics
-- **Peak Heap Usage (useful)**: 176,746 bytes (~173 KB)
-- **Peak Heap Usage (total with overhead)**: 180,008 bytes (~176 KB)
-- **Number of Snapshots**: 78
+- **Peak Heap Usage (useful)**: 176,002 bytes (~172 KB)
+- **Peak Heap Usage (total with overhead)**: 178,800 bytes (~175 KB)
+- **Number of Snapshots**: 65
 - **Heap Profile Shape**: Flat/stable across entire run (no growth)
 
 ### Allocation Pattern (Histogram)
-Dominant allocation sizes:
-- **176-191 bytes**: 1,000,080 blocks (99%) - Most prevalent
-- **16-31 bytes**: 1,937 blocks (<1%)
-- **64-79 bytes**: 1,889 blocks (<1%)
-- **32-47 bytes**: 868 blocks (<1%)
+All 373 allocations occur during setup; diverse sizes across initialization:
+- **32-47 bytes**: 73 blocks (19%)
+- **16-31 bytes**: 56 blocks (14%)
+- **48-63 bytes**: 40 blocks (10%)
+- **0-15 bytes**: 35 blocks (9%)
+- **4096-4111 bytes**: 24 blocks (6%)
+- **112-127 bytes**: 17 blocks (4%)
+- **240-255 bytes**: 16 blocks (4%)
+- Other sizes: 112 blocks (30%)
 
 ## Execution Performance
 (Dedicated memory profiling application, 1 MB payload, 1M iterations)
 
 ### Event Transmission (1 MB payload)
-- **Total benchmark time**: 3,572 ms
-- **Total execution time**: 5,657 ms (including setup/teardown)
-- **Latency per iteration**: ~3.6 µs
+- **Total benchmark time**: 3,475 ms
+- **Total execution time**: 5,435 ms (including setup/teardown)
+- **Latency per iteration**: ~3.5 µs
 - **Iterations**: 1,000,000
 
 ### Per-Iteration Allocation Cost
-- **malloc calls per iteration**: ~1.0
-- **Bytes allocated per iteration**: ~176 bytes
-- **Net heap growth per iteration**: 0 (all freed)
+- **malloc calls per iteration**: 0
+- **Bytes allocated per iteration**: 0
+- **Net heap growth per iteration**: 0
 
-## Massif Top Allocators (at peak snapshot #10)
+## Massif Top Allocators (at peak snapshot #40)
 
 | Allocator | Size | % of Peak |
 |-----------|------|-----------|
-| `ClientConnection::ClientConnection` (vector reserve) | 81,920 B | 48.2% |
-| `ConsoleRecorderFactory::CreateConsoleLoggingBackend` (logging) | 24,792 B | 14.6% |
-| `LogRecord` circular allocator (logging buffer) | 16,384 B | 9.6% |
-| Other (154 places below threshold) | 24,370 B | 14.3% |
-| Allocator overhead (extra-heap) | 3,262 B | 1.8% |
+| `ClientConnection::ClientConnection` (vector reserve) | 81,920 B | 45.8% |
+| `ConsoleRecorderFactory::CreateConsoleLoggingBackend` (logging) | 24,792 B | 13.9% |
+| `LogRecord` circular allocator (logging buffer) | 16,384 B | 9.2% |
+| Other (153 places below threshold) | 23,794 B | 13.3% |
+| Allocator overhead (extra-heap) | 2,798 B | 1.6% |
 
 ## Key Findings
 
-1. **Stable Memory Profile**: Peak heap is ~173-174 KB useful bytes, perfectly flat across 1M iterations — no growth
-2. **Peak Memory**: 173 KB peak (Massif useful-heap), 176 KB total with overhead
-3. **Allocation Pattern**: Single dominant allocation size (176-191 bytes) accounts for 99% of all 1M allocations — one allocation per iteration
-4. **No Leaks**: Perfect balance — 1,005,141 free calls vs 1,005,137 malloc + 3 calloc calls (1 extra free is normal cleanup)
-5. **Reduced Allocation Count**: ~1M total malloc calls (down from ~6M in previous run), indicating allocation path optimization
-6. **Dominant Allocator**: `ClientConnection` buffer reserve accounts for 48% of peak heap (one-time setup cost)
-7. **Logging Overhead**: Console logging backend accounts for ~24% of peak heap (24.8 KB + 16.4 KB)
+1. **Allocation-Free Hot Path**: Zero heap allocations during 1M iterations — all 373 mallocs occur during initialization only
+2. **Stable Memory Profile**: Peak heap is ~172 KB useful bytes, perfectly flat across 1M iterations — no growth
+3. **Peak Memory**: 172 KB peak (Massif useful-heap), 175 KB total with overhead
+4. **No Leaks**: Perfect balance — 377 free calls vs 373 malloc + 3 calloc calls (1 extra free is normal cleanup)
+5. **Dramatic Allocation Reduction**: 373 total malloc calls (down from 1M in previous run, 6M two runs ago) — per-iteration allocations completely eliminated
+6. **Dominant Allocator**: `ClientConnection` buffer reserve accounts for 46% of peak heap (one-time setup cost)
+7. **Logging Overhead**: Console logging backend accounts for ~23% of peak heap (24.8 KB + 16.4 KB)
 
-## Comparison with Previous Run (2026-04-22)
+## Comparison with Previous Runs
 
-| Metric | Previous (Apr 22) | Current (Apr 27) | Change |
-|--------|-------------------|-------------------|--------|
-| Total malloc calls | 6,021,543 | 1,005,137 | -83% |
-| Total heap allocated | 283 MB | 168 MB | -41% |
-| Peak heap (memusage) | 172 KB | 174 KB | +1% |
-| Peak heap (Massif useful) | 172 KB | 173 KB | +1% |
-| Benchmark latency | 3.9 µs | 3.6 µs | -8% |
-| Total execution time | 6.2 s | 5.7 s | -9% |
-| Binary size | 18 MB | 23 MB | +28% |
-| Bazel version | 8.0.0 | 8.4.1 | upgraded |
-| Dominant block size | 32-47 B (49%) | 176-191 B (99%) | changed |
+| Metric | Apr 22 | Apr 27 (prev) | Current | Change (vs prev) |
+|--------|--------|---------------|---------|------------------|
+| Total malloc calls | 6,021,543 | 1,005,137 | 373 | -99.96% |
+| Total heap allocated | 283 MB | 168 MB | 197 KB | -99.9% |
+| Peak heap (memusage) | 172 KB | 174 KB | 172 KB | -1% |
+| Peak heap (Massif useful) | 172 KB | 173 KB | 172 KB | -1% |
+| Benchmark latency | 3.9 µs | 3.6 µs | 3.5 µs | -3% |
+| Total execution time | 6.2 s | 5.7 s | 5.4 s | -5% |
+| Binary size | 18 MB | 23 MB | 23 MB | 0% |
+| Bazel version | 8.0.0 | 8.4.1 | 8.4.1 | same |
+| malloc calls/iteration | ~6 | ~1 | 0 | -100% |
 
-**Notable**: Allocation count dropped by 83% (6M → 1M) while peak heap remained essentially unchanged. This indicates that the per-iteration allocation path has been consolidated from ~6 small allocations to ~1 allocation of 176-191 bytes, reducing allocator overhead significantly. Latency improved by ~8%.
+**Notable**: Per-iteration heap allocations have been completely eliminated. The 373 total malloc calls (all during initialization) compare to 1M in the previous run and 6M two runs ago. Cumulative heap allocation dropped from 168 MB to 197 KB — a 99.9% reduction. This confirms the event transmission hot path is now fully allocation-free.
 
 ## Recommendations
 
-- **Light Memory Footprint**: Peak at 173 KB useful heap — excellent for embedded/real-time systems
+- **Allocation-Free Hot Path**: Zero per-iteration allocations confirms real-time suitability — no allocator jitter during event transmission
+- **Light Memory Footprint**: Peak at 172 KB useful heap — excellent for embedded/real-time systems
 - **Flat Allocation Profile**: Zero heap growth over 1M iterations confirms no leaks and stable memory
-- **Allocation Consolidation**: The shift to a single 176-191 byte allocation per iteration is an improvement over the previous 6 small allocations per iteration
-- **Logging Overhead**: ~24% of peak heap is logging infrastructure; consider disabling in production or using a lighter backend
-- **ClientConnection Buffer**: 80 KB reserve (48% of peak) is one-time setup cost, acceptable for long-running services
+- **Logging Overhead**: ~23% of peak heap is logging infrastructure; consider disabling in production or using a lighter backend
+- **ClientConnection Buffer**: 80 KB reserve (46% of peak) is one-time setup cost, acceptable for long-running services
 
 ## Output Files
 
