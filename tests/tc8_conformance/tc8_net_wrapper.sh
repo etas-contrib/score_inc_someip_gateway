@@ -15,6 +15,8 @@
 # created by Bazel's linux-sandbox (--sandbox_default_allow_network=false).
 # linux-sandbox brings up the loopback interface automatically (-N flag);
 # we only add the multicast route that it does not provide.
+# The test target must carry the "requires-fakeroot" tag so that
+# linux-sandbox maps uid 0 (CAP_NET_ADMIN) inside the user namespace.
 set -euo pipefail
 
 ip route add 224.0.0.0/4 dev lo 2>/dev/null || true

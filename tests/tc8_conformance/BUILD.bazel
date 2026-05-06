@@ -44,6 +44,7 @@ _COMMON_ARGS = ["--color=yes"]
 _COMMON_TAGS = [
     "tc8",
     "conformance",
+    "requires-fakeroot",
 ]
 
 # Used by timing and reboot targets that are sensitive to scheduler jitter
