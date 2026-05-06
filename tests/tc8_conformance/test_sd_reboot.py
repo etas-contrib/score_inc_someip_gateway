@@ -20,8 +20,6 @@ Running both in the same module would cause a routing-manager conflict.
 See ``docs/tc8_conformance/requirements.rst`` for requirement traceability.
 """
 
-import glob
-import os
 import socket
 import subprocess
 import time
@@ -31,7 +29,12 @@ import pytest
 
 from attribute_plugin import add_test_properties
 
-from conftest import launch_someipd, render_someip_config, terminate_someipd
+from conftest import (
+    cleanup_vsomeip_sockets,
+    launch_someipd,
+    render_someip_config,
+    terminate_someipd,
+)
 from helpers.constants import SD_PORT
 from helpers.sd_helpers import open_multicast_socket
 from someip.header import SOMEIPHeader, SOMEIPSDHeader
@@ -43,20 +46,10 @@ from someip.header import SOMEIPHeader, SOMEIPSDHeader
 #: Uses the standard SD config (same service IDs as test_service_discovery.py).
 SOMEIP_CONFIG: str = "tc8_someipd_sd.json"
 
-
-def _cleanup_vsomeip_sockets(base_path: str = "/tmp") -> None:
-    """Remove stale vsomeip routing-manager sockets between DUT restarts.
-
-    vsomeip creates Unix domain sockets at ``<base_path>/vsomeip-<name>``
-    for the routing manager.  When the DUT is terminated with SIGTERM, the
-    socket file may not be cleaned up.  A stale socket prevents the next
-    DUT instance from becoming routing manager, leading to no SD messages.
-    """
-    for stale in glob.glob(f"{base_path}/vsomeip-*"):
-        try:
-            os.unlink(stale)
-        except OSError:
-            pass
+#: Maximum wait time for SD messages, derived from TC8 spec §4 IUT parameters:
+#: Listen Time (10 s) + Tolerance Time (1 s) + Process Time (2 s) = 13 s,
+#: plus 2 s buffer for container/CI overhead.
+_SD_CAPTURE_TIMEOUT_SECS: float = 15.0
 
 
 # ---------------------------------------------------------------------------
@@ -124,13 +117,13 @@ def sd_reboot_capture(
 
     try:
         # Drain 3 SD messages so the DUT has cleared the reboot flag.
-        _collect_sd_messages(pre_sock, count=3, timeout_secs=8.0)
+        _collect_sd_messages(pre_sock, count=3, timeout_secs=_SD_CAPTURE_TIMEOUT_SECS)
     finally:
         pre_sock.close()
         terminate_someipd(proc1)
 
     # Wait for someipd to release the port before restarting.
-    for _ in range(10):
+    for _ in range(20):
         try:
             with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as probe:
                 probe.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -141,7 +134,7 @@ def sd_reboot_capture(
 
     # Remove stale vsomeip routing-manager sockets so the second instance
     # can become routing manager immediately.
-    _cleanup_vsomeip_sockets()
+    cleanup_vsomeip_sockets()
 
     # ---------------------------------------------------------------------------
     # Second run — open capture socket BEFORE launch to catch the first packet.
@@ -158,7 +151,9 @@ def sd_reboot_capture(
         raise
 
     try:
-        post_messages = _collect_sd_messages(post_sock, count=2, timeout_secs=8.0)
+        post_messages = _collect_sd_messages(
+            post_sock, count=2, timeout_secs=_SD_CAPTURE_TIMEOUT_SECS
+        )
     finally:
         post_sock.close()
         terminate_someipd(proc2)
@@ -264,7 +259,7 @@ class TestSDRebootDetectionETS:
 
         proc1 = launch_someipd(config_path)
         drained: List[Tuple[SOMEIPHeader, SOMEIPSDHeader]] = []
-        deadline = time.monotonic() + 8.0
+        deadline = time.monotonic() + _SD_CAPTURE_TIMEOUT_SECS
         while time.monotonic() < deadline and len(drained) < 3:
             remaining = deadline - time.monotonic()
             pre_sock.settimeout(min(remaining, 1.0))
@@ -283,7 +278,7 @@ class TestSDRebootDetectionETS:
         terminate_someipd(proc1)
 
         # Wait for port release.
-        for _ in range(10):
+        for _ in range(20):
             try:
                 with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as probe:
                     probe.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -292,7 +287,7 @@ class TestSDRebootDetectionETS:
             except OSError:
                 time.sleep(0.05)
 
-        _cleanup_vsomeip_sockets()
+        cleanup_vsomeip_sockets()
 
         # --- Second run: capture post-reboot offer ---
         try:
@@ -302,7 +297,7 @@ class TestSDRebootDetectionETS:
 
         proc2 = launch_someipd(config_path)
         post_messages: List[Tuple[SOMEIPHeader, SOMEIPSDHeader]] = []
-        deadline2 = time.monotonic() + 8.0
+        deadline2 = time.monotonic() + _SD_CAPTURE_TIMEOUT_SECS
         while time.monotonic() < deadline2 and len(post_messages) < 1:
             remaining = deadline2 - time.monotonic()
             post_sock.settimeout(min(remaining, 1.0))
@@ -367,7 +362,7 @@ class TestSDRebootDetectionETS:
 
         proc1 = launch_someipd(config_path)
         pre_messages: List[Tuple[SOMEIPHeader, SOMEIPSDHeader]] = []
-        deadline = time.monotonic() + 8.0
+        deadline = time.monotonic() + _SD_CAPTURE_TIMEOUT_SECS
         while time.monotonic() < deadline and len(pre_messages) < 3:
             remaining = deadline - time.monotonic()
             pre_sock.settimeout(min(remaining, 1.0))
@@ -386,7 +381,7 @@ class TestSDRebootDetectionETS:
         terminate_someipd(proc1)
 
         # Wait for port release.
-        for _ in range(10):
+        for _ in range(20):
             try:
                 with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as probe:
                     probe.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -395,7 +390,7 @@ class TestSDRebootDetectionETS:
             except OSError:
                 time.sleep(0.05)
 
-        _cleanup_vsomeip_sockets()
+        cleanup_vsomeip_sockets()
 
         # --- Second run: verify session_id and reboot flag reset ---
         try:
@@ -405,7 +400,7 @@ class TestSDRebootDetectionETS:
 
         proc2 = launch_someipd(config_path)
         post_messages: List[Tuple[SOMEIPHeader, SOMEIPSDHeader]] = []
-        deadline2 = time.monotonic() + 8.0
+        deadline2 = time.monotonic() + _SD_CAPTURE_TIMEOUT_SECS
         while time.monotonic() < deadline2 and len(post_messages) < 1:
             remaining = deadline2 - time.monotonic()
             post_sock.settimeout(min(remaining, 1.0))

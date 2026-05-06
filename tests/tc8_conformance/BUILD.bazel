@@ -38,9 +38,10 @@ _COMMON_ARGS = ["--color=yes"]
 # ``env`` attribute.  The SOME/IP-SD protocol requires the SD source port to
 # equal the configured SD port; this is satisfied because both the DUT config
 # and Python sockets read the same TC8_SD_PORT env var for each process.  The
-# ``exclusive`` tag is removed from the four medium targets; the two large
-# targets (tc8_sd_phases_timing and tc8_sd_reboot) retain it for timing
-# accuracy and reboot lifecycle safety.
+# ``exclusive`` tag is removed from the medium targets; timing-sensitive and
+# reboot-lifecycle targets retain it via ``_EXCLUSIVE_TAGS`` for scheduling
+# accuracy.  All TC8 pytest targets use ``size = "medium"`` (300 s timeout),
+# which accommodates slow CI/container environments (max observed: ~175 s).
 _COMMON_TAGS = [
     "tc8",
     "conformance",
@@ -73,7 +74,7 @@ score_py_pytest(
 
 score_py_pytest(
     name = "tc8_sd_phases_timing",
-    size = "large",
+    size = "medium",
     srcs = [
         "conftest.py",
         "test_sd_phases_timing.py",
@@ -135,7 +136,7 @@ score_py_pytest(
 
 score_py_pytest(
     name = "tc8_sd_reboot",
-    size = "large",
+    size = "medium",
     srcs = [
         "conftest.py",
         "test_sd_reboot.py",
@@ -216,7 +217,7 @@ score_py_pytest(
 
 score_py_pytest(
     name = "tc8_sd_client",
-    size = "large",
+    size = "medium",
     srcs = [
         "conftest.py",
         "test_sd_client.py",

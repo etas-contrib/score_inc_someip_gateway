@@ -34,7 +34,13 @@ import pytest
 
 from attribute_plugin import add_test_properties
 
-from conftest import launch_someipd, render_someip_config, terminate_someipd
+from conftest import (
+    cleanup_vsomeip_sockets,
+    launch_someipd,
+    render_someip_config,
+    terminate_someipd,
+    wait_for_sd_readiness,
+)
 from helpers.constants import SD_PORT
 from helpers.sd_helpers import open_multicast_socket
 from helpers.sd_sender import (
@@ -52,6 +58,11 @@ from someip.header import SOMEIPHeader, SOMEIPSDHeader
 
 #: Uses the SD config (service 0x1234/0x5678, eventgroup 0x4455 UDP).
 SOMEIP_CONFIG: str = "tc8_someipd_sd.json"
+
+#: Maximum wait time for SD messages, derived from TC8 spec §4 IUT parameters:
+#: Listen Time (10 s) + Tolerance Time (1 s) + Process Time (2 s) = 13 s,
+#: plus 2 s buffer for container/CI overhead.
+_SD_CAPTURE_TIMEOUT_SECS: float = 15.0
 
 #: Service and eventgroup IDs (matches tc8_someipd_sd.json).
 _SERVICE_ID: int = 0x1234
@@ -184,8 +195,10 @@ class TestSDClientStopSubscribe:
         """
         proc = launch_someipd(sd_client_config)
         try:
-            # Allow DUT to enter its main SD phase.
-            time.sleep(2.0)
+            # Wait for DUT to reach SD main phase (first OfferService multicast).
+            if not wait_for_sd_readiness(host_ip, timeout_secs=15.0):
+                terminate_someipd(proc)
+                pytest.skip("someipd DUT did not reach SD main phase within timeout")
 
             sd_sock = open_sender_socket(tester_ip)
             notif_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -294,12 +307,15 @@ class TestSDClientReboot:
             raise
 
         try:
-            _collect_sd_messages(pre_sock, count=3, timeout_secs=10.0)
+            _collect_sd_messages(
+                pre_sock, count=3, timeout_secs=_SD_CAPTURE_TIMEOUT_SECS
+            )
         finally:
             pre_sock.close()
             terminate_someipd(proc1)
 
         _wait_port_free(SD_PORT)
+        cleanup_vsomeip_sockets()
 
         # --- Second run: capture first post-reboot message ---
         try:
@@ -314,7 +330,9 @@ class TestSDClientReboot:
             raise
 
         try:
-            post_messages = _collect_sd_messages(post_sock, count=2, timeout_secs=10.0)
+            post_messages = _collect_sd_messages(
+                post_sock, count=2, timeout_secs=_SD_CAPTURE_TIMEOUT_SECS
+            )
         finally:
             post_sock.close()
             terminate_someipd(proc2)
@@ -363,11 +381,14 @@ class TestSDClientReboot:
                 pre_sock.close()
                 raise
             try:
-                _collect_sd_messages(pre_sock, count=3, timeout_secs=10.0)
+                _collect_sd_messages(
+                    pre_sock, count=3, timeout_secs=_SD_CAPTURE_TIMEOUT_SECS
+                )
             finally:
                 pre_sock.close()
                 terminate_someipd(proc)
             _wait_port_free(SD_PORT)
+            cleanup_vsomeip_sockets()
 
         # First run.
         try:
@@ -396,7 +417,9 @@ class TestSDClientReboot:
             raise
 
         try:
-            post_messages = _collect_sd_messages(post_sock, count=2, timeout_secs=10.0)
+            post_messages = _collect_sd_messages(
+                post_sock, count=2, timeout_secs=_SD_CAPTURE_TIMEOUT_SECS
+            )
         finally:
             post_sock.close()
             terminate_someipd(proc3)

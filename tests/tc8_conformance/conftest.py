@@ -23,6 +23,7 @@ TC8_HOST_IP
     Use a non-loopback address for reliable multicast.
 """
 
+import glob
 import ipaddress
 import os
 import socket
@@ -145,6 +146,23 @@ def terminate_someipd(proc: subprocess.Popen[bytes]) -> None:
         proc.stdout.close()
     if proc.stderr:
         proc.stderr.close()
+
+
+def cleanup_vsomeip_sockets(base_path: str = "/tmp") -> None:
+    """Remove stale vsomeip routing-manager sockets.
+
+    vsomeip creates Unix domain sockets at ``<base_path>/vsomeip-<name>``
+    for the routing manager.  When ``someipd`` is terminated with SIGTERM,
+    these socket files may not be cleaned up.  A stale socket prevents the
+    next instance from becoming routing manager — no SD messages are sent.
+
+    Call this between DUT restart cycles (after :func:`terminate_someipd`).
+    """
+    for stale in glob.glob(f"{base_path}/vsomeip-*"):
+        try:
+            os.unlink(stale)
+        except OSError:
+            pass
 
 
 def wait_for_sd_readiness(

@@ -42,6 +42,11 @@ _CYCLIC_OFFER_DELAY_MS: float = 2000.0
 _REPETITIONS_BASE_DELAY_MS: float = 200.0
 _REPETITIONS_MAX: int = 3
 
+#: Capture timeout — must accommodate DUT startup + repetition phase + one
+#: cyclic gap.  Theoretical minimum: ~3.5 s (100 ms initial + 1.4 s reps +
+#: 2 s cyclic).  Generous margin for slow CI/container environments.
+_PHASE_CAPTURE_TIMEOUT_SECS: float = 20.0
+
 
 # ---------------------------------------------------------------------------
 # Fixture: pre-opens multicast socket, starts DUT, captures phase data
@@ -79,7 +84,7 @@ def sd_phase_capture(
         offers = collect_sd_offers_from_socket(
             capture_sock,
             count=5,  # initial offer + 3 reps + 1 cyclic
-            timeout_secs=10.0,
+            timeout_secs=_PHASE_CAPTURE_TIMEOUT_SECS,
         )
     except TimeoutError:
         offers = []  # tests will handle empty capture with appropriate assertions
