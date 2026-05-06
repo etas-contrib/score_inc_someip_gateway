@@ -291,16 +291,13 @@ def require_tc8_environment() -> None:
        instead of producing cryptic socket errors later.
 
     3. **Multicast route** — when ``host_ip`` is a loopback address, the
-       kernel's default multicast route typically goes via a non-loopback
-       interface (e.g. ``eth0``),
-       not ``lo``.  The SOME/IP stack may resolves its SD multicast interface
-       from the system routing table (``ip route get 224.x.x.x``), so SD
-       traffic bypasses loopback and never reaches the test sockets.  We
-       verify the route resolves to ``dev lo`` and skip with instructions
-       if not.
+       multicast route must go via ``lo``.  With ``--config=tc8`` Bazel's
+       ``linux-sandbox`` creates a private network namespace
+       (``--sandbox_default_allow_network=false``) and ``tc8_net_wrapper.sh``
+       adds the multicast route automatically.  This check catches cases
+       where someone runs without ``--config=tc8``.
 
-    CI sets up both: ``--test_env=TC8_HOST_IP=127.0.0.1`` and
-    ``sudo ip route add 224.0.0.0/4 dev lo``.
+    CI uses ``--config=tc8`` which handles everything automatically.
     """
     raw_ip = os.environ.get("TC8_HOST_IP")
     if raw_ip is None:
