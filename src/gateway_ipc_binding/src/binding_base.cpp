@@ -80,6 +80,12 @@ Gateway_ipc_binding_base::~Gateway_ipc_binding_base() {
     client_connectors = m_service_states.release_client_connectors();
 }
 
+void Gateway_ipc_binding_base::register_shared_memory_configurations(
+    Shared_memory_configs const& configs) noexcept {
+    std::lock_guard<std::recursive_mutex> const lock{m_mutex};
+    m_slot_managers.register_configuration(configs);
+}
+
 void Gateway_ipc_binding_base::add_client(Client_id const& client_id,
                                           Reply_channel& reply_channel) {
     std::lock_guard<std::recursive_mutex> const lock{m_mutex};

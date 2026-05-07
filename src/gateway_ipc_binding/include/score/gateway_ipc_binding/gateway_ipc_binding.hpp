@@ -140,11 +140,30 @@ struct Payload_consumed {
     Shared_memory_handle handle;
 };
 
+/// \brief Shared memory configuration for a single service instance,
+/// sent by the client to the server in the Connect message.
+struct Service_shared_memory_config {
+    Service service;
+    Instance_id instance_id;
+    Shared_memory_metadata metadata;
+};
+
+bool operator==(Service_shared_memory_config const& lhs,
+                Service_shared_memory_config const& rhs) noexcept;
+
+/// \brief Container of shared memory configurations, one entry per service instance
+/// that the server should be able to allocate shared memory for.
+using Shared_memory_configs =
+    Fixed_size_container<Service_shared_memory_config, kMax_find_service_elements>;
+
 /// \brief Initial IPC connection request
 struct Connect {
     DECLARE_MESSAGE_TYPE(Message_type::Connect);
 
     Find_service_elements find_service_elements;
+    /// \brief Shared memory configuration for each service instance that the server is expected
+    /// to allocate. Sent by the client so the server needs no upfront configuration.
+    Shared_memory_configs shared_memory_configs;
     Client_identifier identifier;
 };
 
@@ -253,6 +272,7 @@ static_assert(std::is_trivially_copyable_v<Client_identifier>);
 static_assert(std::is_trivially_copyable_v<Service>);
 static_assert(std::is_trivially_copyable_v<Shared_memory_handle>);
 static_assert(std::is_trivially_copyable_v<Shared_memory_metadata>);
+static_assert(std::is_trivially_copyable_v<Service_shared_memory_config>);
 static_assert(std::is_trivially_copyable_v<Payload_consumed>);
 static_assert(std::is_trivially_copyable_v<Connect>);
 static_assert(std::is_trivially_copyable_v<Connect_reply>);

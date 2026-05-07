@@ -41,7 +41,7 @@ std::vector<std::byte> const expected_payload{std::byte{1}, std::byte{2}, std::b
 
 class Test_constants {
    protected:
-    static constexpr std::size_t k_max_message_size = 4096;
+    static constexpr std::size_t k_max_message_size = 32768;
 
     std::string const service_name = make_service_name();
 
@@ -66,6 +66,9 @@ class Test_constants {
 
     Shared_memory_manager_factory::Shared_memory_configuration const client_shm_config{
         {interface, {{instance, client_metadata}}}};
+
+    Shared_memory_configs const server_shared_memory_configs{
+        make_shared_memory_configs(server_shm_config)};
 
     Event_id const event_id{0};
     Method_id const method_id{0};

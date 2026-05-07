@@ -145,8 +145,9 @@ class Gateway_ipc_binding_payload_lifetime_regression_test
         server.reset();
         client.reset();
 
-        server = create_ipc_server(*runtime_server, server_one_slot_shm_config);
-        client = create_ipc_client(*runtime_client, client1_shm_config);
+        server = create_ipc_server(*runtime_server);
+        client = create_ipc_client(*runtime_client, client1_shm_config, {},
+                                   make_shared_memory_configs(server_one_slot_shm_config));
         client2 = create_ipc_client(*runtime_client2, client2_shm_config);
 
         start_and_wait_for_all_clients();

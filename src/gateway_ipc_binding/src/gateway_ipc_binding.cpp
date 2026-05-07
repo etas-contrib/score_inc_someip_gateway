@@ -66,4 +66,10 @@ bool operator==(Service_instance const& lhs, Service_instance const& rhs) noexce
     return lhs.service == rhs.service && lhs.instance_id == rhs.instance_id;
 }
 
+bool operator==(Service_shared_memory_config const& lhs,
+                Service_shared_memory_config const& rhs) noexcept {
+    return lhs.service == rhs.service && lhs.instance_id == rhs.instance_id &&
+           lhs.metadata == rhs.metadata;
+}
+
 }  // namespace score::gateway_ipc_binding

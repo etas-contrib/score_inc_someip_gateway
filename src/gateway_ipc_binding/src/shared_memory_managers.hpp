@@ -74,6 +74,11 @@ class Shared_memory_managers {
         return get_shared_memory_metadata(slot_manager);
     }
 
+    void register_configuration(Shared_memory_configs const& configs) noexcept {
+        auto result = m_slot_manager_factory->register_configuration(configs);
+        assert(result && "Failed to register shared memory configuration");
+    }
+
     void insert_allocation(Key_t const& key, socom::Payload payload, std::size_t consumer_count) {
         if (consumer_count == 0U) {
             return;

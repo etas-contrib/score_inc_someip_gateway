@@ -308,6 +308,20 @@ class Shared_memory_manager_factory {
         score::socom::Service_interface_identifier const& interface,
         score::socom::Service_instance const& instance) noexcept = 0;
 
+    /// \brief Register shared memory configuration for a service instance
+    ///
+    /// Allows the factory to learn the configuration for a service instance at runtime,
+    /// so that create() can succeed for services whose configuration was not known at
+    /// construction time.  Calling this with an already-registered (interface, instance)
+    /// pair overwrites the previous configuration.
+    ///
+    /// \param interface Service interface identifier
+    /// \param instance Service instance
+    /// \param metadata Shared memory metadata (path, slot_size, slot_count)
+    /// \return Result<void> — success, or error if the arguments are invalid
+    [[nodiscard]] virtual Result<void> register_configuration(
+        Shared_memory_configs const& configs) noexcept = 0;
+
     /// \brief Open a Shared_memory_slot_manager for existing read only shared memory
     /// \param metadata Metadata describing the shared memory to open
     /// \return Result containing a unique pointer to the opened
@@ -315,6 +329,14 @@ class Shared_memory_manager_factory {
     virtual Result<Read_only_shared_memory_slot_manager::Uptr> open(
         Shared_memory_metadata const& metadata) noexcept = 0;
 };
+
+/// \brief Convert a Shared_memory_manager_factory configuration map to a Shared_memory_configs
+/// fixed container suitable for transmission in a Connect message.
+///
+/// \param config Factory configuration mapping interfaces and instances to metadata
+/// \return Fixed-size container with one entry per (interface, instance) pair
+[[nodiscard]] Shared_memory_configs make_shared_memory_configs(
+    Shared_memory_manager_factory::Shared_memory_configuration const& config) noexcept;
 
 }  // namespace score::gateway_ipc_binding
 

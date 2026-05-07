@@ -136,6 +136,8 @@ class Gateway_ipc_binding_server_impl : public Gateway_ipc_binding_server {
                 m_client_identifiers[client_id] = Client_info{
                     fixed_string_to_string(msg.identifier), connection.GetClientIdentity()};
 
+                m_binding_base.register_shared_memory_configurations(msg.shared_memory_configs);
+
                 if (!msg.find_service_elements.empty()) {
                     m_on_find_service_change(client_id, msg.find_service_elements, true);
                     m_find_service_elements_by_client[client_id] = msg.find_service_elements;

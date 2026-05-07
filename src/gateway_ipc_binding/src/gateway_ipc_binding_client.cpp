@@ -38,15 +38,18 @@ class Gateway_ipc_binding_client_impl : public Gateway_ipc_binding_client, publi
     /// \param channel Unique pointer to bidirectional channel client
     /// \param slot_manager Unique pointer to shared memory slot manager
     /// \param find_service_elements Service elements to advertise
+    /// \param server_shared_memory_configs Shared memory configuration to send to the server
     Gateway_ipc_binding_client_impl(
         score::socom::Runtime& runtime,
         score::cpp::pmr::unique_ptr<score::message_passing::IClientConnection> channel,
         Shared_memory_manager_factory::Sptr slot_manager,
-        Find_service_elements find_service_elements, Client_identifier identifier)
+        Find_service_elements find_service_elements, Client_identifier identifier,
+        Shared_memory_configs server_shared_memory_configs)
         : m_binding_base{runtime, std::move(slot_manager)},
           m_channel(std::move(channel)),
           m_find_service_elements(std::move(find_service_elements)),
-          m_identifier(std::move(identifier)) {
+          m_identifier(std::move(identifier)),
+          m_server_shared_memory_configs(std::move(server_shared_memory_configs)) {
         m_channel->Start([this](auto const state) { on_state_change(state); },
                          [this](auto const data) { on_receive_message(data); });
     }
@@ -85,6 +88,7 @@ class Gateway_ipc_binding_client_impl : public Gateway_ipc_binding_client, publi
             case score::message_passing::IClientConnection::State::kReady: {
                 Message_frame<Connect> connect_msg;
                 connect_msg.payload.find_service_elements = m_find_service_elements;
+                connect_msg.payload.shared_memory_configs = m_server_shared_memory_configs;
                 connect_msg.payload.identifier = m_identifier;
                 (void)send(connect_msg);
 
@@ -138,6 +142,7 @@ class Gateway_ipc_binding_client_impl : public Gateway_ipc_binding_client, publi
     score::cpp::pmr::unique_ptr<score::message_passing::IClientConnection> m_channel;
     Find_service_elements m_find_service_elements;
     Client_identifier m_identifier;
+    Shared_memory_configs m_server_shared_memory_configs;
 };
 
 }  // namespace
@@ -146,7 +151,7 @@ std::unique_ptr<Gateway_ipc_binding_client> Gateway_ipc_binding_client::create(
     score::socom::Runtime& runtime,
     score::cpp::pmr::unique_ptr<score::message_passing::IClientConnection> connection,
     Shared_memory_manager_factory::Uptr slot_manager, Find_service_elements find_service_elements,
-    std::string_view identifier) noexcept {
+    Shared_memory_configs server_shared_memory_configs, std::string_view identifier) noexcept {
     assert(connection && "Connection must not be null");
 
     auto identifier_opt = fixed_string_from_string<Client_identifier>(identifier);
@@ -154,7 +159,7 @@ std::unique_ptr<Gateway_ipc_binding_client> Gateway_ipc_binding_client::create(
 
     return std::make_unique<Gateway_ipc_binding_client_impl>(
         runtime, std::move(connection), std::move(slot_manager), std::move(find_service_elements),
-        *identifier_opt);
+        *identifier_opt, std::move(server_shared_memory_configs));
 }
 
 }  // namespace score::gateway_ipc_binding

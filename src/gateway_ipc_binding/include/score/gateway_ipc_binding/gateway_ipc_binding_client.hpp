@@ -44,6 +44,9 @@ class Gateway_ipc_binding_client {
     /// \param connection pre-created client transport connection
     /// \param slot_manager factory for per-service writable and read-only shared memory managers
     /// \param find_service_elements Service elements to advertise for finding services
+    /// \param server_shared_memory_configs Shared memory configuration for each service instance
+    ///        that the server is expected to create.  Sent to the server in the Connect message so
+    ///        the server needs no upfront static configuration.
     /// \param identifier Optional string identifying this client peer to the server
     /// \return Unique pointer to the created client
     static std::unique_ptr<Gateway_ipc_binding_client> create(
@@ -51,6 +54,7 @@ class Gateway_ipc_binding_client {
         score::cpp::pmr::unique_ptr<score::message_passing::IClientConnection> connection,
         score::gateway_ipc_binding::Shared_memory_manager_factory::Uptr slot_manager,
         Find_service_elements find_service_elements = {},
+        Shared_memory_configs server_shared_memory_configs = {},
         std::string_view identifier = {}) noexcept;
 
     /// \brief Virtual destructor

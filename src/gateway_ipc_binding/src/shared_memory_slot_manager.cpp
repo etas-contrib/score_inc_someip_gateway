@@ -12,6 +12,7 @@
  ********************************************************************************/
 
 #include <cassert>
+#include <mutex>
 #include <optional>
 #include <score/gateway_ipc_binding/shared_memory_slot_manager.hpp>
 #include <utility>
@@ -275,6 +276,19 @@ class Shared_memory_manager_factory_impl final : public Shared_memory_manager_fa
                                                  instance_it->second.slot_size);
     }
 
+    Result<void> register_configuration(Shared_memory_configs const& configs) noexcept override {
+        for (std::size_t i = 0; i < configs.size; ++i) {
+            auto const& entry = configs.data[i];
+            auto const interface = entry.service.to_socom_identifier();
+            auto const instance =
+                socom::Service_instance{fixed_string_to_string(entry.instance_id)};
+
+            m_configuration[interface][instance] = entry.metadata;
+        }
+
+        return {};
+    }
+
     Result<Read_only_shared_memory_slot_manager::Uptr> open(
         Shared_memory_metadata const& metadata) noexcept override {
         std::string const path = fixed_string_to_string(metadata.path);
@@ -380,6 +394,23 @@ Shared_memory_slot_guard Shared_memory_slot_manager::create_slot_guard(
 Shared_memory_manager_factory::Uptr Shared_memory_manager_factory::create(
     Shared_memory_configuration configuration) noexcept {
     return std::make_unique<Shared_memory_manager_factory_impl>(std::move(configuration));
+}
+
+Shared_memory_configs make_shared_memory_configs(
+    Shared_memory_manager_factory::Shared_memory_configuration const& config) noexcept {
+    Shared_memory_configs result{};
+    for (auto const& [interface, instances] : config) {
+        for (auto const& [instance, metadata] : instances) {
+            assert(result.size < Shared_memory_configs::max_size &&
+                   "make_shared_memory_configs: too many entries for fixed container");
+            auto& entry = result.data[result.size];
+            entry.service = make_service(interface);
+            entry.instance_id = make_instance_id(instance);
+            entry.metadata = metadata;
+            ++result.size;
+        }
+    }
+    return result;
 }
 
 }  // namespace score::gateway_ipc_binding

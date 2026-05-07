@@ -47,6 +47,14 @@ class Gateway_ipc_binding_base : public Service_request_sender {
                                       Shared_memory_manager_factory::Sptr slot_manager);
     ~Gateway_ipc_binding_base() override;
 
+    /// \brief Register shared memory configurations received from a client's Connect message
+    ///
+    /// Allows the factory to learn the configuration for service instances dynamically,
+    /// so that create() can succeed without upfront configuration.
+    ///
+    /// \param configs Container of service-instance-to-metadata mappings from the Connect message
+    void register_shared_memory_configurations(Shared_memory_configs const& configs) noexcept;
+
     /// \brief Add an IPC connection to another process
     /// \param client_id Identifier for the client
     /// \param reply_channel Channel for sending replies to the client

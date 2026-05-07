@@ -122,7 +122,7 @@ class Event_transmission_benchmark_context final {
     }
 
    private:
-    static constexpr std::size_t k_max_message_size = 4096U;
+    static constexpr std::size_t k_max_message_size = 32768U;
     static constexpr std::uint32_t k_slot_count = 64U;
 
     score::socom::Runtime::Uptr runtime_server_;
@@ -173,8 +173,7 @@ class Event_transmission_benchmark_context final {
         auto ipc_server = server_factory.Create(protocol_config_, server_config_);
         assert(ipc_server);
         gateway_server_ = Gateway_ipc_binding_server::create(
-            *runtime_server_, std::move(ipc_server),
-            Shared_memory_manager_factory::create(server_shm_config),
+            *runtime_server_, std::move(ipc_server), Shared_memory_manager_factory::create({}),
             [](auto, auto const&, auto) {});
         assert(gateway_server_);
 
@@ -182,7 +181,8 @@ class Event_transmission_benchmark_context final {
         auto connection = client_factory.Create(protocol_config_, client_config_);
         gateway_client_ = Gateway_ipc_binding_client::create(
             *runtime_client_, std::move(connection),
-            Shared_memory_manager_factory::create(client_shm_config));
+            Shared_memory_manager_factory::create(client_shm_config), {},
+            make_shared_memory_configs(server_shm_config));
         assert(gateway_client_);
 
         auto start_result = gateway_server_->start();

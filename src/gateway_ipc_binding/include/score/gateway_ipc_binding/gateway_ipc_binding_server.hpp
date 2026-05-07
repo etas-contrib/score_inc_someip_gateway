@@ -54,7 +54,9 @@ class Gateway_ipc_binding_server {
     /// \brief Create the server-side IPC binding endpoint
     /// \param runtime SOCom runtime used to register the binding as a service bridge
     /// \param server pre-created message_passing server
-    /// \param slot_manager factory for per-service writable and read-only shared memory managers
+    /// \param slot_manager factory for per-service writable and read-only shared memory managers.
+    ///        The factory may be constructed with an empty configuration; per-service shared memory
+    ///        configuration is registered dynamically when a client's Connect message is received.
     /// \param on_find_service_change callback invoked on connect/disconnect find-service updates
     /// \return Unique pointer to the created server
     static std::unique_ptr<Gateway_ipc_binding_server> create(

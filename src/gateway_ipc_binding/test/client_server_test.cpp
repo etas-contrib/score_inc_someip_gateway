@@ -423,8 +423,9 @@ TEST_F(Gateway_ipc_binding_unconnected_test, get_client_identifiers_reports_iden
         score::message_passing::UnixDomainClientFactory client_factory;
         auto connection = client_factory.Create(protocol_config, client_config);
         auto mock_factory_raw = create_mock_unique_ptr(mock_client_shared_memory_manager_factory);
-        auto client = Gateway_ipc_binding_client::create(
-            *runtime_client, std::move(connection), std::move(mock_factory_raw), {}, identifier);
+        auto client =
+            Gateway_ipc_binding_client::create(*runtime_client, std::move(connection),
+                                               std::move(mock_factory_raw), {}, {}, identifier);
 
         while (!client->is_connected()) {
             std::this_thread::sleep_for(1ms);

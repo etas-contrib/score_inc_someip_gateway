@@ -29,6 +29,9 @@ class Shared_memory_manager_factory_mock : public Shared_memory_manager_factory 
                  score::socom::Service_instance const& instance),
                 (noexcept, override));
 
+    MOCK_METHOD(Result<void>, register_configuration, (Shared_memory_configs const& configs),
+                (noexcept, override));
+
     MOCK_METHOD(Result<Read_only_shared_memory_slot_manager::Uptr>, open,
                 (Shared_memory_metadata const& metadata), (noexcept, override));
 };

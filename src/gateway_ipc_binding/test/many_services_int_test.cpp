@@ -143,8 +143,9 @@ class Gateway_ipc_binding_many_services_integration_test
     Gateway_ipc_binding_many_services_integration_test() {
         client = nullptr;
         server = nullptr;
-        client = create_ipc_client(*runtime_client, client_shm_config);
-        server = create_ipc_server(*runtime_server, server_shm_config);
+        client = create_ipc_client(*runtime_client, client_shm_config, {},
+                                   make_shared_memory_configs(server_shm_config));
+        server = create_ipc_server(*runtime_server);
 
         start_and_wait_for_client_connection();
     }

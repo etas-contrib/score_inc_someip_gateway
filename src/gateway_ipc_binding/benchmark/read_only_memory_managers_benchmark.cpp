@@ -47,6 +47,11 @@ class Shared_memory_manager_factory_benchmark final : public Shared_memory_manag
         return Read_only_shared_memory_slot_manager::Uptr{
             std::make_unique<Read_only_shared_memory_slot_manager_benchmark>()};
     }
+
+    Result<void> register_configuration(
+        [[maybe_unused]] Shared_memory_configs const& configs) noexcept override {
+        return {};
+    }
 };
 
 void benchmark_cached_read_only_lookup(benchmark::State& state) {
