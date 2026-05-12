@@ -115,13 +115,15 @@
         "--compile-commands-dir=${workspaceFolder}/",
         "--pretty",
         "--background-index",
-        "--query-driver=/var/cache/bazel/*/execroot/_main/external/toolchains_llvm++llvm+llvm_toolchain/bin/cc_wrapper.sh"
+        "--query-driver=/var/cache/bazel/*/execroot/_main/external/toolchains_llvm++llvm+llvm_toolchain/bin/cc_wrapper.sh",
+        "--query-driver=${userHome}/.cache/bazel/**/execroot/_main/external/toolchains_llvm++llvm+llvm_toolchain/bin/cc_wrapper.sh"
     ],
     "cSpell.words": [
         "ASIL",
         "flatbuffer",
         "flatbuffers",
         "gatewayd",
+        "socom",
         "someip",
         "someipd",
         "vsomeip"
