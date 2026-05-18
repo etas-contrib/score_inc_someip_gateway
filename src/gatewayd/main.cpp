@@ -27,6 +27,7 @@
 #include "score/mw/com/types.h"
 #include "src/config/mw_someip_config_generated.h"
 #include "src/network_service/interfaces/message_transfer.h"
+#include "src/serializer/serializer.h"
 
 // In the main file we are not in any namespace
 using namespace score::someip_gateway::gatewayd;
@@ -130,6 +131,14 @@ int main(int argc, char* argv[]) {
     auto config = std::shared_ptr<const score::mw_someip_config::Root>(
         config_buffer, score::mw_someip_config::GetRoot(config_buffer.get()));
 
+    // TODO: Align on which identifier to pass to the serializer
+    if (score_com_serializer_init(configuration_path.Native().data(),
+                                  configuration_path.Native().size()) !=
+        score_com_serializer_result_ok) {
+        std::cerr << "Error: Failed to initialize serializer plugin." << std::endl;
+        return 1;
+    }
+
     score::mw::com::runtime::InitializeRuntime(
         score::mw::com::runtime::RuntimeConfiguration{service_instance_manifest_path});
 
@@ -197,6 +206,10 @@ int main(int argc, char* argv[]) {
     }
 
     std::cout << "Shutting down gateway..." << std::endl;
+
+    if (score_com_serializer_deinit() != score_com_serializer_result_ok) {
+        std::cerr << "Warning: Failed to deinitialize serializer plugin." << std::endl;
+    }
 
     return 0;
 }

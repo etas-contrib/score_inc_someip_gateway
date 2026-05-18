@@ -120,12 +120,15 @@
     ],
     "cSpell.words": [
         "ASIL",
+        "bazelbuild",
         "flatbuffer",
         "flatbuffers",
         "gatewayd",
+        "hdrs",
         "socom",
         "someip",
         "someipd",
+        "srcs",
         "vsomeip"
     ],
 }
