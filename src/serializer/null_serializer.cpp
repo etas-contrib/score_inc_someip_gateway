@@ -16,18 +16,32 @@
 
 #include <cstddef>
 #include <cstring>
+#include <list>
 
 #include "src/serializer/pre_serialized_data.h"
 #include "src/serializer/serializer.h"
 
+using score::someip_gateway::serializer::get_size_of_pre_serialized_data;
 using score::someip_gateway::serializer::PreSerializedData;
+
+struct score_com_serializer {
+    std::size_t max_serialized_size;
+};
 
 namespace {
 
-constexpr std::size_t MAX_MESSAGE_SIZE = 1500U;  // TODO: Make configurable
+// TODO: This should probably be a map or directly pointer into the flatbuffer config.
+std::list<score_com_serializer>& get_serializers() {
+    static std::list<score_com_serializer> serializers;
+    return serializers;
+}
 
-score_com_serializer_result serialize(uint8_t* buffer, const size_t buffer_size, const void* object,
-                                      size_t* written_bytes) {
+};  // anonymous namespace
+
+score_com_serializer_result score_com_serializer_serialize(const struct score_com_serializer*,
+                                                           uint8_t* buffer, size_t buffer_size,
+                                                           const void* object,
+                                                           size_t* written_bytes) {
     if (buffer == nullptr || object == nullptr) {
         return score_com_serializer_result_general_failure;
     }
@@ -43,12 +57,14 @@ score_com_serializer_result serialize(uint8_t* buffer, const size_t buffer_size,
     return score_com_serializer_result_ok;
 }
 
-score_com_serializer_result deserialize(const uint8_t* buffer, size_t buffer_size, void* object) {
-    if (buffer == nullptr || object == nullptr) {
+score_com_serializer_result score_com_serializer_deserialize(
+    const struct score_com_serializer* serializer, const uint8_t* buffer, size_t buffer_size,
+    void* object) {
+    if (serializer == nullptr || buffer == nullptr || object == nullptr) {
         return score_com_serializer_result_general_failure;
     }
     auto* pre_serialized_data = static_cast<PreSerializedData<0>*>(object);
-    if (buffer_size > MAX_MESSAGE_SIZE) {
+    if (buffer_size > serializer->max_serialized_size) {
         return score_com_serializer_result_deserialization_failure;
     }
     std::memcpy(pre_serialized_data->data, buffer, buffer_size);
@@ -56,31 +72,53 @@ score_com_serializer_result deserialize(const uint8_t* buffer, size_t buffer_siz
     return score_com_serializer_result_ok;
 }
 
-};  // anonymous namespace
+std::size_t score_com_serializer_get_max_serialized_size(
+    const struct score_com_serializer* serializer) {
+    if (serializer == nullptr) {
+        return 0;
+    }
+    return serializer->max_serialized_size;
+}
+
+std::size_t score_com_serializer_get_sizeof_object(const struct score_com_serializer* serializer) {
+    if (serializer == nullptr) {
+        return 0;
+    }
+    return get_size_of_pre_serialized_data(serializer->max_serialized_size);
+}
+
+std::size_t score_com_serializer_get_alignof_object(const struct score_com_serializer*) {
+    return alignof(PreSerializedData<0>);
+}
 
 score_com_serializer_result score_com_serializer_init(const char* serializer_identifier,
                                                       size_t serializer_identifier_size) {
+    get_serializers();
     return score_com_serializer_result_ok;
 }
 
-score_com_serializer_result score_com_serializer_deinit() { return score_com_serializer_result_ok; }
+score_com_serializer_result score_com_serializer_deinit() {
+    get_serializers().clear();
+    return score_com_serializer_result_ok;
+}
 
 score_com_serializer_result score_com_serializer_get(
     const char* service_type, size_t service_type_size,
     enum score_com_serializer_element_type element_type, const char* element_name,
-    size_t element_name_size, struct score_com_serializer* serializer) {
+    size_t element_name_size, struct score_com_serializer** serializer) {
     if (serializer == nullptr) {
         return score_com_serializer_result_general_failure;
     }
-    serializer->serialize = serialize;
-    serializer->deserialize = deserialize;
-    serializer->max_serialized_size = MAX_MESSAGE_SIZE;
-    serializer->sizeof_object = sizeof(PreSerializedData<MAX_MESSAGE_SIZE>);
-    static_assert(
-        alignof(PreSerializedData<0>) == alignof(std::max_align_t),
-        "We assume that the alignment of PreSerializedData is the maximum alignment required by "
-        "any type, so it should be safe to set the serializer's alignof_object to that value.");
-    serializer->alignof_object = alignof(PreSerializedData<0>);
+
+    constexpr std::size_t MAX_MESSAGE_SIZE = 1500;  // TODO: Make configurable
+    static_assert(sizeof(PreSerializedData<MAX_MESSAGE_SIZE>) ==
+                      get_size_of_pre_serialized_data(MAX_MESSAGE_SIZE),
+                  "Size of PreSerializedData does not match expected value.");
+    struct score_com_serializer new_serializer {
+        // TODO: Get this from config
+        .max_serialized_size = MAX_MESSAGE_SIZE,
+    };
+    *serializer = &get_serializers().emplace_back(std::move(new_serializer));
 
     return score_com_serializer_result_ok;
 }

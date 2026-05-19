@@ -34,44 +34,44 @@ enum [[nodiscard]] score_com_serializer_result {
     score_com_serializer_result_deserialization_failure = 4
 };
 
-// Typedefs for C-style function pointers.
-// This avoids C++-specific features like std::function, ensuring ABI stability.
-// returnType (*pointerName)(parameterType1, parameterType2, ...);
-typedef score_com_serializer_result (*score_com_serializer_serialize_t)(uint8_t* buffer,
-                                                                        size_t buffer_size,
-                                                                        const void* object,
-                                                                        size_t* written_bytes);
-typedef score_com_serializer_result (*score_com_serializer_deserialize_t)(const uint8_t* buffer,
-                                                                          size_t buffer_size,
-                                                                          void* object);
+/// Serializer is an opaque struct that represents a serializer instance. The actual definition is
+/// hidden in the implementation to allow for flexibility in how serializers are implemented. Users
+/// of the serializer plugin will interact with pointers to this struct, but they won't know its
+/// internal structure.
+struct score_com_serializer;
 
-/// Methods and properties of a serializer
-struct score_com_serializer {
-    /// Serializes the given object into the provided buffer.
-    /// @param[out] buffer Pointer to the buffer where the serialized data will be stored.
-    /// @param buffer_size Size of the provided buffer in bytes.
-    /// @param object Pointer to the object that needs to be serialized.
-    /// @param[out] written_bytes Pointer to a variable where the function will write the number of
-    /// bytes actually written to the buffer.
-    score_com_serializer_serialize_t serialize;
+/// Serializes the given object into the provided buffer.
+/// @param serializer Pointer to the serializer
+/// @param[out] buffer Pointer to the buffer where the serialized data will be stored.
+/// @param buffer_size Size of the provided buffer in bytes.
+/// @param object Pointer to the object that needs to be serialized.
+/// @param[out] written_bytes Pointer to a variable where the function will write the number of
+/// bytes actually written to the buffer.
+score_com_serializer_result score_com_serializer_serialize(
+    const struct score_com_serializer* serializer, uint8_t* buffer, size_t buffer_size,
+    const void* object, size_t* written_bytes);
 
-    /// Deserializes data from the given buffer into the provided object.
-    /// @param buffer Pointer to the buffer containing the serialized data.
-    /// @param buffer_size Size of the provided buffer in bytes.
-    /// @param[out] object Pointer to the object where the deserialized data will be stored.
-    score_com_serializer_deserialize_t deserialize;
+/// Deserializes data from the given buffer into the provided object.
+/// @param serializer Pointer to the serializer
+/// @param buffer Pointer to the buffer containing the serialized data.
+/// @param buffer_size Size of the provided buffer in bytes.
+/// @param[out] object Pointer to the object where the deserialized data will be stored.
+score_com_serializer_result score_com_serializer_deserialize(
+    const struct score_com_serializer* serializer, const uint8_t* buffer, size_t buffer_size,
+    void* object);
 
-    /// Maximum size of the serialized data in bytes.
-    std::size_t max_serialized_size;
-
-    /// sizeof() of the C++ data type.
-    /// Optional for serialization, default = 0.
-    std::size_t sizeof_object;
-
-    /// alignof() of the C++ data type.
-    /// Optional for serialization, default = 0.
-    std::size_t alignof_object;
-};
+/// Retrieves the maximum serialized size of the serializer.
+/// @param serializer Pointer to the serializer
+std::size_t score_com_serializer_get_max_serialized_size(
+    const struct score_com_serializer* serializer);
+/// Retrieves the sizeof() of the C++ data type that the serializer handles.
+/// @param serializer Pointer to the serializer
+/// @retval 0 if not specified by the serializer. Deserialization might not work.
+std::size_t score_com_serializer_get_sizeof_object(const struct score_com_serializer* serializer);
+/// Retrieves the alignof() of the C++ data type that the serializer handles.
+/// @param serializer Pointer to the serializer
+/// @retval 0 if not specified by the serializer. Deserialization might not work.
+std::size_t score_com_serializer_get_alignof_object(const struct score_com_serializer* serializer);
 
 enum score_com_serializer_element_type {
     score_com_serializer_element_type_event = 0,
@@ -96,7 +96,7 @@ enum score_com_serializer_element_type {
 score_com_serializer_result score_com_serializer_get(
     const char* service_type, size_t service_type_size,
     enum score_com_serializer_element_type element_type, const char* element_name,
-    size_t element_name_size, struct score_com_serializer* serializer);
+    size_t element_name_size, const struct score_com_serializer** serializer);
 
 /// Initializes the serializer plugin. This function must be called once before any calls to
 /// score_com_serializer_get(). Not thread-safe.

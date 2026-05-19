@@ -34,6 +34,15 @@ struct PreSerializedData {
     alignas(std::max_align_t) std::byte data[MaxMessageSize];
 };
 
+/// Helper function to calculate the size of the PreSerializedData struct at runtime.
+constexpr std::size_t get_size_of_pre_serialized_data(std::size_t MaxMessageSize) {
+    // Round up MaxMessageSize to the next multiple of alignof(PreSerializedData<0>)
+    std::size_t sizeof_data =
+        ((MaxMessageSize + alignof(PreSerializedData<0>) - 1) / alignof(PreSerializedData<0>)) *
+        alignof(PreSerializedData<0>);
+    return sizeof(PreSerializedData<0>) + sizeof_data;
+}
+
 }  // namespace score::someip_gateway::serializer
 
 #endif  // SRC_SERIALIZER_PRE_SERIALIZED_DATA
