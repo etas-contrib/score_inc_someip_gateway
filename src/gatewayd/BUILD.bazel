@@ -34,7 +34,10 @@ cc_binary(
         ":local_service_instance",
         ":remote_service_instance",
         "//src/config:config_flatbuffers",
+        "//src/gateway_ipc_binding",
+        "//src/socom",
         "@score_baselibs//score/filesystem",
+        "@score_communication//score/message_passing",
         "@score_communication//score/mw/com",
     ],
 )
@@ -45,6 +48,7 @@ cc_library(
     hdrs = ["local_service_instance.h"],
     deps = [
         "//src/config:config_flatbuffers",
+        "//src/socom",
         "@score_communication//score/mw/com",
     ],
 )
@@ -56,7 +60,7 @@ cc_library(
     deps = [
         "//src/common",
         "//src/config:config_flatbuffers",
-        "//src/network_service:consumer",
+        "//src/socom",
         "//tests/benchmarks:echo_service",
         "@score_baselibs//score/containers:non_relocatable_vector",
         "@score_communication//score/mw/com",
