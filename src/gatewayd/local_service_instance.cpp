@@ -26,20 +26,16 @@ using score::mw::com::SamplePtr;
 
 namespace score::someip_gateway::gatewayd {
 
-using network_service::interfaces::message_transfer::SomeipMessageTransferSkeleton;
-
 static const std::size_t max_sample_count = 10;
 
 LocalServiceInstance::LocalServiceInstance(
     std::shared_ptr<const mw_someip_config::ServiceInstance> service_instance_config,
     std::shared_ptr<const mw_someip_config::ServiceType> service_type_config,
-    GenericProxy&& ipc_proxy,
-    // TODO: Decouple this via an interface
-    SomeipMessageTransferSkeleton& someip_message_skeleton)
+    GenericProxy&& ipc_proxy, socom::Enabled_server_connector::Uptr server_connector)
     : service_instance_config_(std::move(service_instance_config)),
       service_type_config_(std::move(service_type_config)),
       ipc_proxy_(std::move(ipc_proxy)),
-      someip_message_skeleton_(someip_message_skeleton) {
+      server_connector_(std::move(server_connector)) {
     // Set up IPC event handlers
     auto& events = ipc_proxy_.GetEvents();
 
@@ -146,16 +142,16 @@ namespace {
 struct FindServiceContext {
     std::shared_ptr<const mw_someip_config::ServiceInstance> config;
     std::shared_ptr<const mw_someip_config::ServiceType> service_config;
-    SomeipMessageTransferSkeleton& skeleton;
+    socom::Enabled_server_connector::Uptr server_connector;
     std::vector<std::unique_ptr<LocalServiceInstance>>& instances;
 
     FindServiceContext(std::shared_ptr<const mw_someip_config::ServiceInstance> config_,
                        std::shared_ptr<const mw_someip_config::ServiceType> service_config_,
-                       SomeipMessageTransferSkeleton& skeleton_,
+                       socom::Enabled_server_connector::Uptr server_connector,
                        std::vector<std::unique_ptr<LocalServiceInstance>>& instances_)
         : config(std::move(config_)),
           service_config(std::move(service_config_)),
-          skeleton(skeleton_),
+          server_connector(std::move(server_connector)),
           instances(instances_) {}
 };
 
@@ -164,7 +160,7 @@ struct FindServiceContext {
 Result<mw::com::FindServiceHandle> LocalServiceInstance::CreateAsyncLocalServices(
     std::shared_ptr<const mw_someip_config::ServiceInstance> service_instance_config,
     std::shared_ptr<const mw_someip_config::ServiceType> service_type_config,
-    SomeipMessageTransferSkeleton& someip_message_skeleton,
+    socom::Enabled_server_connector::Uptr server_connector,
     std::vector<std::unique_ptr<LocalServiceInstance>>& instances) {
     if (service_instance_config == nullptr) {
         std::cerr << "[gatewayd] ERROR: Service instance config is nullptr!" << std::endl;
@@ -179,7 +175,7 @@ Result<mw::com::FindServiceHandle> LocalServiceInstance::CreateAsyncLocalService
     // TODO: StartFindService should be modified to handle arbitrarily large lambdas
     // or we need to check whether it is OK to stick with dynamic allocation here.
     auto context = std::make_unique<FindServiceContext>(
-        service_instance_config, service_type_config, someip_message_skeleton, instances);
+        service_instance_config, service_type_config, std::move(server_connector), instances);
 
     return GenericProxy::StartFindService(
         [context = std::move(context)](auto handles, auto find_handle) {
@@ -197,7 +193,7 @@ Result<mw::com::FindServiceHandle> LocalServiceInstance::CreateAsyncLocalService
             // TODO: Add mutex if callbacks can run concurrently or use futures
             context->instances.push_back(std::make_unique<LocalServiceInstance>(
                 instance_config, service_config, std::move(proxy_result).value(),
-                context->skeleton));
+                std::move(context->server_connector)));
 
             std::cout << "[gatewayd] LocalServiceInstance created for instance specifier: "
                       << instance_config->instance_specifier()->string_view() << std::endl;
