@@ -442,7 +442,7 @@ TEST_F(Gateway_ipc_binding_unconnected_test, get_client_identifiers_reports_iden
 
     std::vector<std::string> identifier_values;
     for (auto const& [id, info] : identifiers) {
-        identifier_values.push_back(info.identifier);
+        identifier_values.push_back(fixed_string_to_string(info.identifier));
     }
     EXPECT_THAT(identifier_values, ::testing::IsSupersetOf({"client_A", "client_B"}));
 }
@@ -459,7 +459,7 @@ TEST_F(Gateway_ipc_binding_unconnected_test,
 
     auto const identifiers = server->get_client_identifiers();
     ASSERT_EQ(identifiers.size(), 1U);
-    EXPECT_EQ(identifiers.begin()->second.identifier, "");
+    EXPECT_EQ(fixed_string_to_string(identifiers.begin()->second.identifier), "");
 }
 
 TEST_F(Gateway_ipc_binding_unconnected_test,

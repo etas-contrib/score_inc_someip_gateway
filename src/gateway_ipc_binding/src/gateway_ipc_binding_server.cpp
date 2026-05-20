@@ -133,8 +133,8 @@ class Gateway_ipc_binding_server_impl : public Gateway_ipc_binding_server {
                 auto const& msg = **msg_opt;
                 std::lock_guard<std::mutex> const lock(m_mutex);
 
-                m_client_identifiers[client_id] = Client_info{
-                    fixed_string_to_string(msg.identifier), connection.GetClientIdentity()};
+                m_client_identifiers[client_id] =
+                    Client_info{msg.identifier, connection.GetClientIdentity()};
 
                 m_binding_base.register_shared_memory_configurations(msg.shared_memory_configs);
 

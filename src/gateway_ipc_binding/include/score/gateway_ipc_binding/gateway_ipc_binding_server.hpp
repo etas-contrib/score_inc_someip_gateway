@@ -34,8 +34,8 @@ namespace score::gateway_ipc_binding {
 using Client_id = std::size_t;
 /// \brief Information about a connected client
 struct Client_info {
-    /// \brief Identifier string supplied by the client in its Connect message (empty if none)
-    std::string identifier;
+    /// \brief Identifier supplied by the client in its Connect message (empty if none)
+    Client_identifier identifier;
     /// \brief Transport-level client identity (PID, UID, GID)
     score::message_passing::ClientIdentity client_identity;
 };
