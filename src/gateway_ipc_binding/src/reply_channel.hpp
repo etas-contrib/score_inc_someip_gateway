@@ -34,12 +34,12 @@ class Reply_channel {
     /// \brief Send a message through this connection
     /// \param msg Message to send
     /// \return Success or error
-    template <typename Msg_type>
-    Result<void> send(Msg_type const& msg) noexcept {
-        static_assert(std::is_trivially_copyable_v<Msg_type>,
-                      "Msg_type must be trivially copyable for send");
+    template <typename Msg_frame>
+    Result<void> send(Msg_frame const& msg) noexcept {
+        static_assert(std::is_trivially_copyable_v<Msg_frame>,
+                      "Msg_frame must be trivially copyable for send");
         return send(score::cpp::span<std::uint8_t const>(
-            reinterpret_cast<std::uint8_t const*>(&msg), sizeof(Msg_type)));
+            reinterpret_cast<std::uint8_t const*>(&msg), sizeof(Msg_frame)));
     }
 
    protected:

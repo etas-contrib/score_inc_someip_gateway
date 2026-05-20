@@ -28,10 +28,10 @@ class Connections {
     std::unordered_map<Client_id, std::reference_wrapper<Reply_channel>> m_connections;
 
    public:
-    template <typename Msg_type>
-    Result<void> send(Client_id const& client_id, Msg_type const& msg) const noexcept {
-        static_assert(std::is_trivially_copyable_v<Msg_type>,
-                      "Msg_type must be trivially copyable for send");
+    template <typename Msg_frame>
+    Result<void> send(Client_id const& client_id, Msg_frame const& msg) const noexcept {
+        static_assert(std::is_trivially_copyable_v<Msg_frame>,
+                      "Msg_frame must be trivially copyable for send");
 
         auto connection_it = m_connections.find(client_id);
         if (connection_it == m_connections.end()) {
@@ -41,10 +41,10 @@ class Connections {
         return connection_it->second.get().send(msg);
     }
 
-    template <typename Msg_type>
-    Result<void> send_to_all(Msg_type const& msg) const noexcept {
-        static_assert(std::is_trivially_copyable_v<Msg_type>,
-                      "Msg_type must be trivially copyable for send_to_all");
+    template <typename Msg_frame>
+    Result<void> send_to_all(Msg_frame const& msg) const noexcept {
+        static_assert(std::is_trivially_copyable_v<Msg_frame>,
+                      "Msg_frame must be trivially copyable for send_to_all");
 
         Result<void> last_failure = {};
         for (auto& entry : m_connections) {
