@@ -99,24 +99,18 @@ Prioritized by expected impact and implementation risk.
 - Reuse allocation entries rather than creating and destroying them each time.
 - Why: this is a newly prominent bottleneck after event handling optimizations.
 
-3. Reduce shared_ptr reference counting overhead
-- `shared_ptr` destruction and `__release_shared` together cost ~14%.
-- Where possible, pass payloads by reference or use `unique_ptr` instead of `shared_ptr`.
-- Consider intrusive reference counting for hot-path payload objects.
-- Why: atomic reference count operations are costly at high message rates.
-
-4. Replace or reduce poll wakeups
+3. Replace or reduce poll wakeups
 - If feasible in the transport layer, move from poll loop patterns toward readiness/eventfd integration with less wake-sleep churn.
 - Tune poll timeout and wake strategy to avoid frequent short sleeps.
 - Why: `poll` and scheduler frames are consistently dominant (~26% and ~30% respectively).
 
-5. Reduce mutex contention in hot callbacks
+4. Reduce mutex contention in hot callbacks
 - `mutex::lock` + `lll_lock_wait` together cost ~9.5%.
 - Review whether a lock-free or reader-writer pattern can replace the mutex on the event delivery path.
 - Consider per-connection locks to reduce contention scope.
 - Why: lock contention directly adds latency to each event round-trip.
 
-6. Reduce kernel socket buffer churn
+5. Reduce kernel socket buffer churn
 - `consume_skb` + `kmem_cache_free` together cost ~12%.
 - If the transport supports it, use pre-allocated socket buffers or zero-copy sendmsg paths.
 - Why: kernel-side buffer lifecycle is a material per-message cost.
