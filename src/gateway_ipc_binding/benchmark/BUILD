@@ -16,16 +16,11 @@ load("@score_baselibs//score/language/safecpp:toolchain_features.bzl", "COMPILER
 
 cc_binary(
     name = "gateway_ipc_binding_benchmark",
-    srcs = glob(
-        include = [
-            "*.cpp",
-            "*.hpp",
-        ],
-        allow_empty = True,
-        exclude = [
-            "event_transmission_client_to_server_memory.cpp",
-        ],
-    ),
+    srcs = [
+        "event_transmission_benchmark_context.hpp",
+        "event_transmission_client_to_server_benchmark.cpp",
+        "read_only_memory_managers_benchmark.cpp",
+    ],
     data = ["tsan.supp"],
     env = {
         "TSAN_OPTIONS": "halt_on_error=1 suppressions=$(location tsan.supp)",
@@ -41,16 +36,10 @@ cc_binary(
 
 cc_binary(
     name = "gateway_ipc_binding_memory",
-    srcs = glob(
-        include = [
-            "*.cpp",
-            "*.hpp",
-        ],
-        allow_empty = True,
-        exclude = [
-            "event_transmission_client_to_server_benchmark.cpp",
-        ],
-    ),
+    srcs = [
+        "event_transmission_benchmark_context.hpp",
+        "event_transmission_client_to_server_memory.cpp",
+    ],
     data = ["tsan.supp"],
     env = {
         "TSAN_OPTIONS": "halt_on_error=1 suppressions=$(location tsan.supp)",
