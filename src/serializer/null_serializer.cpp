@@ -14,26 +14,37 @@
 /// @file
 /// This file provides a "serializer" which actually doesn't serialize and just copies the memory.
 
+#include <csignal>
 #include <cstddef>
 #include <cstring>
-#include <list>
+#include <fstream>
+#include <iostream>
+#include <memory>
+#include <string_view>
 
+#include "src/config/mw_someip_config_generated.h"
 #include "src/serializer/pre_serialized_data.h"
 #include "src/serializer/serializer.h"
 
 using score::someip_gateway::serializer::get_size_of_pre_serialized_data;
 using score::someip_gateway::serializer::PreSerializedData;
 
-struct score_com_serializer {
-    std::size_t max_serialized_size;
-};
+// score_com_serializer is an opaque handle that directly points to
+// score::mw_someip_config::NullSerializerConfig in the flatbuffer config.
+struct score_com_serializer {};
 
 namespace {
 
-// TODO: This should probably be a map or directly pointer into the flatbuffer config.
-std::list<score_com_serializer>& get_serializers() {
-    static std::list<score_com_serializer> serializers;
-    return serializers;
+/// Convert from opaque score_com_serializer pointer to NullSerializerConfig
+const score::mw_someip_config::NullSerializerConfig* to_null_config(
+    const struct score_com_serializer* serializer) {
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+    return reinterpret_cast<const score::mw_someip_config::NullSerializerConfig*>(serializer);
+}
+
+std::shared_ptr<const score::mw_someip_config::Root>& get_config() {
+    static std::shared_ptr<const score::mw_someip_config::Root> config;
+    return config;
 }
 
 };  // anonymous namespace
@@ -64,7 +75,7 @@ score_com_serializer_result score_com_serializer_deserialize(
         return score_com_serializer_result_general_failure;
     }
     auto* pre_serialized_data = static_cast<PreSerializedData<0>*>(object);
-    if (buffer_size > serializer->max_serialized_size) {
+    if (buffer_size > to_null_config(serializer)->max_message_size()) {
         return score_com_serializer_result_deserialization_failure;
     }
     std::memcpy(pre_serialized_data->data, buffer, buffer_size);
@@ -77,14 +88,14 @@ std::size_t score_com_serializer_get_max_serialized_size(
     if (serializer == nullptr) {
         return 0;
     }
-    return serializer->max_serialized_size;
+    return to_null_config(serializer)->max_message_size();
 }
 
 std::size_t score_com_serializer_get_sizeof_object(const struct score_com_serializer* serializer) {
     if (serializer == nullptr) {
         return 0;
     }
-    return get_size_of_pre_serialized_data(serializer->max_serialized_size);
+    return get_size_of_pre_serialized_data(to_null_config(serializer)->max_message_size());
 }
 
 std::size_t score_com_serializer_get_alignof_object(const struct score_com_serializer*) {
@@ -93,32 +104,120 @@ std::size_t score_com_serializer_get_alignof_object(const struct score_com_seria
 
 score_com_serializer_result score_com_serializer_init(const char* serializer_identifier,
                                                       size_t serializer_identifier_size) {
-    get_serializers();
+    std::string_view serializer_id(serializer_identifier, serializer_identifier_size);
+
+    // Read config data
+    // TODO: Use memory mapped file instead of copying into buffer
+    std::ifstream config_file;
+    config_file.open(serializer_id, std::ios::binary | std::ios::in);
+
+    if (!config_file.is_open()) {
+        std::cerr << "Error: Could not open config file " << serializer_id << std::endl;
+        return score_com_serializer_result_serializer_nonexistent;
+    }
+
+    config_file.seekg(0, std::ios::end);
+    std::streampos length = config_file.tellg();
+
+    if (length <= 0) {
+        std::cerr << "Error: Invalid config file size: " << length << std::endl;
+        config_file.close();
+        return score_com_serializer_result_serializer_nonexistent;
+    }
+
+    config_file.seekg(0, std::ios::beg);
+    auto config_buffer = std::shared_ptr<char>(new char[length]);
+    config_file.read(config_buffer.get(), length);
+    config_file.close();
+
+    get_config() = std::shared_ptr<const score::mw_someip_config::Root>(
+        config_buffer, score::mw_someip_config::GetRoot(config_buffer.get()));
+
     return score_com_serializer_result_ok;
 }
 
 score_com_serializer_result score_com_serializer_deinit() {
-    get_serializers().clear();
+    get_config().reset();
     return score_com_serializer_result_ok;
 }
+
+namespace {
+
+const score::mw_someip_config::NullSerializerConfig* lookup_serialization_config(
+    std::string_view service_type_name, score_com_serializer_element_type element_type,
+    std::string_view element_name) {
+    const auto config = get_config();
+    if (config == nullptr || config->service_types() == nullptr) {
+        return nullptr;
+    }
+
+    for (const auto* service_type : *config->service_types()) {
+        if (service_type->service_type_name() == nullptr ||
+            service_type->service_type_name()->string_view() != service_type_name) {
+            continue;
+        }
+
+        if (element_type == score_com_serializer_element_type_event) {
+            if (service_type->events() == nullptr) {
+                return nullptr;
+            }
+            for (const auto* event : *service_type->events()) {
+                if (event->event_name() != nullptr &&
+                    event->event_name()->string_view() == element_name) {
+                    return event->serialization_config_as_NullSerializerConfig();
+                }
+            }
+        } else if (element_type == score_com_serializer_element_type_method_call) {
+            if (service_type->methods() == nullptr) {
+                return nullptr;
+            }
+            for (const auto* method : *service_type->methods()) {
+                if (method->method_name() != nullptr &&
+                    method->method_name()->string_view() == element_name) {
+                    return method->request_serialization_config_as_NullSerializerConfig();
+                }
+            }
+        } else if (element_type == score_com_serializer_element_type_method_response) {
+            if (service_type->methods() == nullptr) {
+                return nullptr;
+            }
+            for (const auto* method : *service_type->methods()) {
+                if (method->method_name() != nullptr &&
+                    method->method_name()->string_view() == element_name) {
+                    return method->response_serialization_config_as_NullSerializerConfig();
+                }
+            }
+        }
+
+        return nullptr;
+    }
+
+    return nullptr;
+}
+
+}  // namespace
 
 score_com_serializer_result score_com_serializer_get(
     const char* service_type, size_t service_type_size,
     enum score_com_serializer_element_type element_type, const char* element_name,
-    size_t element_name_size, struct score_com_serializer** serializer) {
+    size_t element_name_size, const struct score_com_serializer** serializer) {
     if (serializer == nullptr) {
         return score_com_serializer_result_general_failure;
     }
 
-    constexpr std::size_t MAX_MESSAGE_SIZE = 1500;  // TODO: Make configurable
-    static_assert(sizeof(PreSerializedData<MAX_MESSAGE_SIZE>) ==
-                      get_size_of_pre_serialized_data(MAX_MESSAGE_SIZE),
-                  "Size of PreSerializedData does not match expected value.");
-    struct score_com_serializer new_serializer {
-        // TODO: Get this from config
-        .max_serialized_size = MAX_MESSAGE_SIZE,
-    };
-    *serializer = &get_serializers().emplace_back(std::move(new_serializer));
+    std::string_view service_type_name(service_type, service_type_size);
+    std::string_view element_name_view(element_name, element_name_size);
+
+    const auto* serializer_config =
+        lookup_serialization_config(service_type_name, element_type, element_name_view);
+    if (serializer_config == nullptr) {
+        std::cerr << "Error: No serialization config found for service_type=" << service_type_name
+                  << " element=" << element_name_view << std::endl;
+        return score_com_serializer_result_serializer_nonexistent;
+    }
+
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+    *serializer = reinterpret_cast<const struct score_com_serializer*>(serializer_config);
 
     return score_com_serializer_result_ok;
 }

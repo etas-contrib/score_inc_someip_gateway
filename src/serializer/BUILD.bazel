@@ -36,6 +36,7 @@ cc_library(
     deps = [
         ":interface",
         ":pre_serialized_data",
+        "//src/config:config_flatbuffers",
     ],
 )
 
