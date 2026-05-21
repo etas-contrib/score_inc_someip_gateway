@@ -602,7 +602,12 @@ BENCHMARK_DEFINE_F(IpcBenchmark, LatencyEcho)(benchmark::State& state) {
 
     for (auto _ : state) {
         auto latency = BenchmarkFixture::Instance().SendEchoRequestSync(payload_size);
-        state.SetIterationTime(latency.count() / 1e9);  // Convert nanoseconds to seconds
+        if (latency.count() == 0) {
+            state.SkipWithError("Failed to receive response or timeout occurred");
+            break;
+        }
+        state.SetIterationTime(std::chrono::duration_cast<std::chrono::duration<double>>(latency)
+                                   .count());  // Convert nanoseconds to seconds
     }
 
     state.SetLabel(GetPayloadSizeName(payload_size));
