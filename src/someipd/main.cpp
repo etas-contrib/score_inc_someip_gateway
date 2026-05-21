@@ -142,7 +142,7 @@ int main(int argc, char* argv[]) {
 
     // Proxy for receiving messages from gatewayd to be sent via SOME/IP
     auto proxy = SomeipMessageTransferProxy::Create(handles.front()).value();
-    proxy.message_.Subscribe(score::someip::max_sample_count);
+    proxy.message_.Subscribe(score::someip::kMaxSampleCount);
 
     // Skeleton for transmitting messages from the network to gatewayd
     // TODO: Error handling for instance specifier creation
