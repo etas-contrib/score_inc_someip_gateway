@@ -32,7 +32,7 @@ Method transport messages are defined in the public header for protocol complete
 End-to-end flow implemented today
 ---------------------------------
 
-.. uml:: ../models/current_connection_and_event_flow.puml
+.. uml:: models/current_connection_and_event_flow.puml
    :align: center
    :caption: Current connection and event flow
 

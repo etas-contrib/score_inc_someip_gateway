@@ -111,7 +111,5 @@ Further details
 .. toctree::
    :maxdepth: 1
 
-   doc/shared_memory
-   doc/ipc_protocol
-   memory_profile/index
-   profiling/benchmark_event_transmission_client_to_server_analysis
+   shared_memory
+   ipc_protocol
