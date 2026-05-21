@@ -48,6 +48,7 @@ cc_library(
     deps = [
         "//src/config:config_flatbuffers",
         "//src/network_service:consumer",
+        "//src/serializer",
         "@score_communication//score/mw/com",
     ],
 )
@@ -60,7 +61,7 @@ cc_library(
         "//src/common",
         "//src/config:config_flatbuffers",
         "//src/network_service:consumer",
-        "//tests/benchmarks:echo_service",
+        "//src/serializer",
         "@score_baselibs//score/containers:non_relocatable_vector",
         "@score_communication//score/mw/com",
     ],
