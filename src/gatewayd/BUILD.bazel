@@ -47,6 +47,7 @@ cc_library(
     srcs = ["local_service_instance.cpp"],
     hdrs = ["local_service_instance.h"],
     deps = [
+        "//src/common",
         "//src/config:config_flatbuffers",
         "//src/socom",
         "@score_communication//score/mw/com",

@@ -19,13 +19,12 @@
 
 #include "score/mw/com/com_error_domain.h"
 #include "score/mw/com/types.h"
+#include "score/someip/constants.h"
 
 using score::mw::com::GenericProxy;
 using score::mw::com::SamplePtr;
 
 namespace score::someip_gateway::gatewayd {
-
-static const std::size_t max_sample_count = 10;
 
 LocalServiceInstance::LocalServiceInstance(
     std::shared_ptr<const mw_someip_config::ServiceInstance> service_instance_config,
@@ -108,10 +107,10 @@ LocalServiceInstance::LocalServiceInstance(
 
                     someip_message_skeleton_.message_.Send(std::move(message_sample));
                 },
-                max_sample_count);
+                someip::kMaxSampleCount);
         });
 
-        ipc_event.Subscribe(max_sample_count);
+        ipc_event.Subscribe(someip::kMaxSampleCount);
     }
 }
 

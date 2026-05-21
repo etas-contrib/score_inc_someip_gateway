@@ -18,14 +18,14 @@
 #include <iostream>
 #include <thread>
 
-#include "src/common/constants.h"
-#include "src/common/someip_error.h"
+#include "score/someip/constants.h"
+#include "score/someip/someip_error.h"
 
 namespace score::someipd {
 
 using score::someip::kAnyInstance;
+using score::someip::kMaxSampleCount;
 using score::someip::kSomeipFullHeaderSize;
-using score::someip::max_sample_count;
 
 Routing::Routing(std::shared_ptr<const score::mw_someip_config::Root> config,
                  SomeipMessageTransferProxy ipc_proxy, SomeipMessageTransferSkeleton ipc_skeleton)
@@ -196,7 +196,7 @@ void Routing::ProcessMessages(std::atomic<bool>& shutdown_requested) {
                           << std::dec << " payload=" << payload_data.size() << "B" << std::endl;
                 application_->notify(service_id, instance_id, event_id, payload_);
             },
-            max_sample_count);
+            kMaxSampleCount);
 
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }

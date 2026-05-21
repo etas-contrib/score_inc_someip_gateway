@@ -19,7 +19,7 @@
 #include "score/containers/non_relocatable_vector.h"
 #include "score/mw/com/com_error_domain.h"
 #include "score/mw/com/types.h"
-#include "src/common/types.h"
+#include "score/someip/constants.h"
 // TODO: Remove dependency on echo service
 #include "tests/benchmarks/echo_service.h"
 
@@ -30,9 +30,6 @@ using score::someip::EventId;
 namespace score::someip_gateway::gatewayd {
 
 using network_service::interfaces::message_transfer::SomeipMessageTransferProxy;
-
-static const std::size_t max_sample_count = 10;
-static const std::size_t SOMEIP_FULL_HEADER_SIZE = 16;
 
 RemoteServiceInstance::RemoteServiceInstance(
     std::shared_ptr<const mw_someip_config::ServiceInstance> service_instance_config,
@@ -52,7 +49,7 @@ RemoteServiceInstance::RemoteServiceInstance(
                 // TODO: Check if size is larger than capacity of data
                 score::cpp::span<const std::byte> message(message_sample->data,
                                                           message_sample->size);
-                if (message.size() < SOMEIP_FULL_HEADER_SIZE) {
+                if (message.size() < someip::kSomeipFullHeaderSize) {
                     std::cerr << "[gatewayd] Received SOME/IP message is too small: "
                               << message.size() << "B, dropping" << std::endl;
                     return;
@@ -66,10 +63,10 @@ RemoteServiceInstance::RemoteServiceInstance(
 
                 std::cout << "[gatewayd] Received SOME/IP event: event=0x" << std::hex
                           << rec_event_id << std::dec
-                          << " payload=" << (message.size() - SOMEIP_FULL_HEADER_SIZE) << "B"
+                          << " payload=" << (message.size() - someip::kSomeipFullHeaderSize) << "B"
                           << std::endl;
 
-                auto payload = message.subspan(SOMEIP_FULL_HEADER_SIZE);
+                auto payload = message.subspan(someip::kSomeipFullHeaderSize);
 
                 // Look up event config by event ID. This is needed to find the corresponding IPC
                 // event to forward the data.
@@ -105,10 +102,10 @@ RemoteServiceInstance::RemoteServiceInstance(
                 std::cout << "[gatewayd] Forwarded event 0x" << std::hex << rec_event_id << std::dec
                           << " to IPC subscribers" << std::endl;
             },
-            max_sample_count);
+            someip::kMaxSampleCount);
     });
 
-    someip_message_proxy_.message_.Subscribe(max_sample_count);
+    someip_message_proxy_.message_.Subscribe(someip::kMaxSampleCount);
 }
 
 namespace {
