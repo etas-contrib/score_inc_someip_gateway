@@ -43,7 +43,7 @@ Writable manager used by the local side.
 Read-only view used for a peer's shared-memory pool.
 
 - opens a pool from `Shared_memory_metadata`
-- resolves `Shared_memory_handle` into a `score::socom::Payload::Sptr`
+- constructs a `score::socom::Payload` from the shared memory span represented by `Shared_memory_handle`
 - triggers a destruction callback when the payload wrapper is released locally
 
 ### `Shared_memory_manager_factory`
