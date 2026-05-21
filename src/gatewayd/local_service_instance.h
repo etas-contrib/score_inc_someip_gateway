@@ -14,9 +14,9 @@
 #ifndef SRC_GATEWAYD_LOCAL_SERVICE_INSTANCE
 #define SRC_GATEWAYD_LOCAL_SERVICE_INSTANCE
 
+#include <map>
 #include <memory>
 #include <string_view>
-#include <unordered_map>
 #include <vector>
 
 #include "score/mw/com/types.h"
@@ -90,7 +90,7 @@ class LocalServiceInstance {
         const mw_someip_config::Event* config;
         const ::score_com_serializer* serializer;
     };
-    std::unordered_map<std::string_view, EventContext> event_contexts_;
+    std::map<std::string_view, EventContext> event_contexts_;
 };
 }  // namespace score::someip_gateway::gatewayd
 

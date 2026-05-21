@@ -212,6 +212,9 @@ inline std::uint64_t GetSequenceId(const EchoMessagePreSerialized<PayloadBytes>&
     // TODO: Apply proper deserialization instead of just reinterpreting the bytes. This is just a
     // quick workaround to get the sequence ID for logging purposes without having to implement a
     // full deserialization.
+    static_assert(
+        sizeof(std::uint64_t) <= EchoMessagePreSerialized<PayloadBytes>::kMaxMessageSize,
+        "EchoMessagePreSerialized must be large enough to hold sequence_id for GetSequenceId");
     return *reinterpret_cast<const std::uint64_t*>(&message.data[0]);
 }
 template <PayloadSize PayloadBytes>

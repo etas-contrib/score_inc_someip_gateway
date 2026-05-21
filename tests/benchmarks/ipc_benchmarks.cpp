@@ -35,10 +35,10 @@ using namespace std::chrono_literals;
 
 constexpr std::uint16_t MaxSamplesCount{10};
 constexpr std::uint8_t MAX_SERVICE_DISCOVERY_RETRIES{30};
-constexpr std::chrono::duration SERVICE_DISCOVERY_RETRY_INTERVAL{1s};
-constexpr std::chrono::duration SEQUENTIAL_HANDSHAKE_DELAY{2s};
-constexpr std::chrono::duration RESPONSE_TIMEOUT{1s};
-constexpr std::chrono::duration POLLING_INTERVAL{10us};
+constexpr auto SERVICE_DISCOVERY_RETRY_INTERVAL{1s};
+constexpr auto SEQUENTIAL_HANDSHAKE_DELAY{2s};
+constexpr auto RESPONSE_TIMEOUT{1s};
+constexpr auto POLLING_INTERVAL{10us};
 constexpr std::uint16_t STRESS_THROUGHPUT_BATCH_SIZE{100};
 
 constexpr const char* EchoRequestkInstanceSpecifier = "benchmark/echo_request";
@@ -246,6 +246,10 @@ class BenchmarkFixture {
 
             response_proxy_->echo_response_tiny_.GetNewSamples(
                 [&](auto pre_serialized_response_sample) {
+                    static_assert(
+                        sizeof(EchoResponseTiny) <=
+                            decltype(pre_serialized_response_sample)::element_type::kMaxMessageSize,
+                        "EchoResponseTiny size exceeds max sample count");
                     assert(pre_serialized_response_sample->size == sizeof(EchoResponseTiny));
                     auto* response_sample = reinterpret_cast<const EchoResponseTiny*>(
                         pre_serialized_response_sample->data);

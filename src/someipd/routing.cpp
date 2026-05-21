@@ -29,7 +29,7 @@ using score::someip::kSomeipFullHeaderSize;
 using score::someip::max_sample_count;
 
 using namespace std::chrono_literals;
-constexpr std::chrono::duration POLLING_INTERVAL{10us};
+constexpr auto POLLING_INTERVAL{10us};
 
 Routing::Routing(std::shared_ptr<const score::mw_someip_config::Root> config,
                  SomeipMessageTransferProxy ipc_proxy, SomeipMessageTransferSkeleton ipc_skeleton)

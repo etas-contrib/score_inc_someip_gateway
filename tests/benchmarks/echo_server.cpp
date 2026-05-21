@@ -31,10 +31,10 @@ using namespace std::chrono_literals;
 
 constexpr std::uint16_t MaxSamplesCount{10};
 constexpr std::size_t LOAD_BALANCING_INTERVAL{1000};
-constexpr std::chrono::duration LOAD_BALANCING_DELAY{1ms};
-constexpr std::chrono::duration MAIN_LOOP_SLEEP{10us};
-constexpr std::chrono::duration INITIAL_CLIENT_WAIT{2s};
-constexpr std::chrono::duration STATS_INTERVAL{5s};
+constexpr auto LOAD_BALANCING_DELAY{1ms};
+constexpr auto MAIN_LOOP_SLEEP{10us};
+constexpr auto INITIAL_CLIENT_WAIT{2s};
+constexpr auto STATS_INTERVAL{5s};
 
 constexpr const char* EchoRequestInstanceSpecifier = "benchmark/echo_request";
 constexpr const char* EchoResponseInstanceSpecifier = "benchmark/echo_response";
