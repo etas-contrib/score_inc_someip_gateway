@@ -30,10 +30,15 @@ cc_binary(
     srcs = ["main.cpp"],
     visibility = ["//visibility:public"],
     deps = [
+        ":local_network_service",
+        ":remote_network_service",
         ":routing",
         "//src/config:config_flatbuffers",
+        "//src/gateway_ipc_binding",
+        "//src/socom",
         "@score_baselibs//score/filesystem",
         "@score_baselibs//score/mw/log",
+        "@score_communication//score/message_passing",
         "@score_communication//score/mw/com",
     ],
 )
@@ -41,6 +46,30 @@ cc_binary(
 # ============================================================================
 # Libraries
 # ============================================================================
+cc_library(
+    name = "local_network_service",
+    srcs = ["local_network_service.cpp"],
+    hdrs = ["local_network_service.h"],
+    deps = [
+        "//src/common",
+        "//src/config:config_flatbuffers",
+        "//src/socom",
+        "@vsomeip",
+    ],
+)
+
+cc_library(
+    name = "remote_network_service",
+    srcs = ["remote_network_service.cpp"],
+    hdrs = ["remote_network_service.h"],
+    deps = [
+        "//src/common",
+        "//src/config:config_flatbuffers",
+        "//src/socom",
+        "@vsomeip",
+    ],
+)
+
 cc_library(
     name = "routing",
     srcs = ["routing.cpp"],
