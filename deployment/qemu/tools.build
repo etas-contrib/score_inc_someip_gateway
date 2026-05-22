@@ -1,0 +1,278 @@
+# *******************************************************************************
+# Copyright (c) 2026 Contributors to the Eclipse Foundation
+#
+# See the NOTICE file(s) distributed with this work for additional
+# information regarding copyright ownership.
+#
+# This program and the accompanying materials are made available under the
+# terms of the Apache License Version 2.0 which is available at
+# https://www.apache.org/licenses/LICENSE-2.0
+#
+# SPDX-License-Identifier: Apache-2.0
+# *******************************************************************************
+
+# Shared IFS content: libs, tools, baked rootfs configs. Per-guest bits
+# (kernel block + startup script with hardcoded IP) are in init_a/b.build.
+
+# Shared libraries
+/usr/lib/ldqnx-64.so.2=ldqnx-64.so.2
+libc.so.6
+[type=link] libc.so=libc.so.6
+libfsnotify.so.1
+libgcc_s.so.1
+libm.so
+libsecpol.so.1
+libtracelog.so.1
+libz.so
+libc++.so.2
+[type=link] libc++.so=libc++.so.2
+libsocket.so.4
+[type=link] libsocket.so=libsocket.so.4
+libxo.so.0
+[type=link] libxo.so=libxo.so.0
+libslog2.so.1
+[type=link] libslog2.so=libslog2.so.1
+libslog2parse.so.1
+[type=link] libslog2parse.so=libslog2parse.so.1
+libqh.so.1
+[type=link] libqh.so=libqh.so.1
+libcam.so.2
+cam-disk.so
+io-blk.so
+fs-qnx6.so
+
+# PCI / parsing libraries pulled in by the network stack and SD/SSH tools
+libpci.so.3.0
+libfdt.so.1
+libbz2.so.1
+liblzma.so.5
+libcatalog.so.1
+libiconv.so.1
+libregex.so.1
+libexpat.so.2
+
+# Crypto
+libqcrypto.so.1.0
+libcrypto.so.3
+libssl.so.3
+qcrypto-openssl-3.so
+
+# Auth / jail
+libjail.so.1
+libpam.so.2
+
+# RPC, for tcpdump
+librpc.so.2
+
+# Networking modules
+io-sock
+mods-pci.so
+mods-phy.so
+devs-vtnet_pci.so
+
+# PCI server + capability handlers
+pci-server
+pci/pci_hw-Intel_x86.so
+pci/pci_slog2.so
+pci/pci_cap-0x05.so
+pci/pci_cap-0x10.so
+pci/pci_cap-0x11.so
+pci/pci_strings.so
+pci/pci_bkwd_compat.so
+pci/pci_debug2.so
+
+# SSH
+sshd
+ssh
+ssh-keygen
+/usr/lib/ssh/sftp-server=${QNX_TARGET}/${PROCESSOR}/usr/libexec/sftp-server
+
+# Network userspace tools
+if_up
+ifconfig
+route
+sysctl
+ping
+netstat
+tcpdump
+hostname
+
+# Core tools / shells / drivers
+on
+[type=link] waitfor=on
+[type=link] ability=on
+ksh
+pidin
+shutdown
+toybox
+awk
+random
+getconf
+[type=link] setconf=getconf
+slog2info
+devc-ser8250
+devc-pty
+fsevmgr
+slogger2
+pipe
+devb-ram
+mkqnx6fs
+mount
+
+# Symlinks
+[type=link] /bin/sh=/proc/boot/ksh
+[type=link] /bin/ls=/proc/boot/ls
+[type=link] cat=toybox
+[type=link] chmod=toybox
+[type=link] cp=toybox
+[type=link] dd=toybox
+[type=link] echo=toybox
+[type=link] grep=toybox
+[type=link] ln=toybox
+[type=link] ls=toybox
+[type=link] rm=toybox
+[type=link] mkdir=toybox
+[type=link] env=toybox
+[type=link] mv=toybox
+[type=link] pwd=toybox
+[type=link] sleep=toybox
+[type=link] tail=toybox
+[type=link] head=toybox
+[type=link] tee=toybox
+[type=link] touch=toybox
+[type=link] uname=toybox
+[type=link] wc=toybox
+[type=link] which=toybox
+[type=link] whoami=toybox
+[type=link] id=toybox
+[type=link] sed=toybox
+[type=link] sort=toybox
+[type=link] find=toybox
+[type=link] xargs=toybox
+[type=link] date=toybox
+[type=link] kill=toybox
+[type=link] true=toybox
+[type=link] false=toybox
+[type=link] test=toybox
+
+# System directories (writable mounts populated by the per-guest startup.sh)
+[type=dir] /tmp_discovery
+[type=dir] /tmp_ram
+[type=dir] /var
+[type=dir] /var/db
+[gid=0 uid=0 dperms=755 type=dir] /var/chroot/sshd
+[gid=0 uid=0 dperms=700 type=dir] /var/ssh
+
+# Baked rootfs configs
+[perms=0444] pci_server.cfg = {
+[buscfg]
+DO_BUS_CONFIG=no
+
+[envars]
+PCI_DEBUG_MODULE=pci_debug2.so
+PCI_HW_MODULE=pci_hw-Intel_x86.so
+PCI_HW_CONFIG_FILE=/proc/boot/pci_hw.cfg
+}
+
+[perms=0444] pci_hw.cfg = {
+[interrupts]
+B0:D17:F0    A    18
+B0:D17:F0    B    19
+B0:D17:F0    C    16
+B0:D17:F0    D    17
+B3:D0:F0     A    18
+B3:D0:F0     B    19
+B3:D0:F0     C    16
+B3:D0:F0     D    17
+}
+
+[uid=0 gid=0 perms=0444] qcrypto.conf = {
+openssl-3 tags=*
+}
+
+[uid=0 gid=0 perms=0644] /etc/passwd = {
+root::0:0:Superuser:/:/bin/sh
+qnxuser::1000:1000:QNX User:/:/bin/sh
+sshd::15:6:sshd:/:/bin/false
+}
+
+[uid=0 gid=0 perms=0644] /etc/group = {
+root::0:root
+qnxuser::1000:qnxuser
+sshd::6:sshd
+}
+
+[uid=0 gid=0 perms=0644] /etc/profile = {
+export PATH=/proc/boot:/bin:/usr/bin:/sbin:/usr/sbin
+export LD_LIBRARY_PATH=/proc/boot:/usr/lib
+export TERM=qansi
+export PS1='# '
+}
+
+# Integration-test SSH host key — guests reachable only over virbr0.
+[uid=0 gid=0 perms=0400] /var/ssh/ssh_host_rsa_key = {
+-----BEGIN OPENSSH PRIVATE KEY-----
+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
+Fu+/MLbJQuA1zpAAAAAAEC
+-----END OPENSSH PRIVATE KEY-----
+}
+
+[uid=0 gid=0 perms=0444] /var/ssh/sshd_config = {
+Port 22
+Protocol 2
+HostKey /var/ssh/ssh_host_rsa_key
+
+PasswordAuthentication yes
+PermitEmptyPasswords yes
+PubkeyAuthentication no
+PermitRootLogin yes
+PermitUserEnvironment yes
+PidFile none
+StrictModes no
+UseDNS no
+LogLevel DEBUG
+
+Subsystem sftp /usr/lib/ssh/sftp-server
+
+# Headroom for rapid test reconnects over the virbr0 bridge.
+MaxStartups 100:30:200
+LoginGraceTime 30
+}
+
+# NOTE: gateway binaries, libs, and configs are placed in the IFS by
+# qnx_ifs(srcs=[…]) through the rules_pkg pkg_files targets in BUILD.bazel —
+# no explicit "/path=${VAR}" mounts are needed here anymore.

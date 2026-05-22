@@ -11,150 +11,124 @@
 # SPDX-License-Identifier: Apache-2.0
 # *******************************************************************************
 
-# =============================================================================
-# QNX QEMU Image for SOME/IP Gateway
-#
-# Builds a bootable QNX IFS (Image File System) containing the someipd and
-# gatewayd daemons, then provides a target to run it under QEMU.
-#
-# Usage:
-#   # Build the IFS image
-#   bazel build //deployment/qemu:someip_gateway_ifs --config=x86_64-qnx
-# =============================================================================
+# QNX IFS images for the SOME/IP Gateway integration tests.
+# init_a / init_b boot identical gateways with hardcoded IPs 192.168.87.2 / .3.
 
-load("@rules_pkg//pkg:tar.bzl", "pkg_tar")
+load("@rules_pkg//pkg:mappings.bzl", "pkg_attributes", "pkg_files", "strip_prefix")
 load("@score_rules_imagefs//rules/qnx:ifs.bzl", "qnx_ifs")
 
-# Export scripts for use as data dependencies in tests
-exports_files(
-    [
-        "run_qemu.sh",
-    ],
-    visibility = [
-        "//deployment:__subpackages__",
-        "//tests:__subpackages__",
-    ],
-)
+_EXEC = pkg_attributes(mode = "0755")
+_DATA = pkg_attributes(mode = "0644")
 
-# ---------------------------------------------------------------------------
-# Package all gateway binaries + configs into a single tar for IFS inclusion
-# ---------------------------------------------------------------------------
-pkg_tar(
+pkg_files(
     name = "gateway_binaries_pkg",
     srcs = [
         "//src/gatewayd",
         "//src/someipd",
         "//tests/integration/sample_client",
     ],
-    include_runfiles = True,
-    package_dir = "/",
+    attributes = _EXEC,
+    prefix = "/usr/bin",
+    strip_prefix = strip_prefix.files_only(),
 )
 
-# ---------------------------------------------------------------------------
-# Package shared libraries (.so) for /usr/lib in the IFS
-# ---------------------------------------------------------------------------
-pkg_tar(
+pkg_files(
     name = "gateway_libs_pkg",
-    srcs = [
-        "@vsomeip",
-    ],
-    include_runfiles = True,
-    package_dir = "/",
+    srcs = ["@vsomeip"],
+    attributes = _DATA,
+    prefix = "/usr/lib",
+    strip_prefix = strip_prefix.files_only(),
 )
 
-# ---------------------------------------------------------------------------
-# Package gateway config files for the IFS
-# ---------------------------------------------------------------------------
-pkg_tar(
+pkg_files(
     name = "gateway_configs_pkg",
     srcs = [
         "//src/gatewayd:config_file",
         "//src/gatewayd:etc/mw_com_config.json",
     ],
-    strip_prefix = "/src/gatewayd/etc",
+    attributes = _DATA,
+    prefix = "/etc/gatewayd",
+    strip_prefix = strip_prefix.files_only(),
 )
 
-# ---------------------------------------------------------------------------
-# Package someipd config files for the IFS
-# ---------------------------------------------------------------------------
-pkg_tar(
+pkg_files(
     name = "someipd_configs_pkg",
     srcs = [
         "//src/someipd:etc/mw_com_config.json",
         "//tests/integration:vsomeip.json",
     ],
-    remap_paths = {
-        "/src/someipd/etc/mw_com_config.json": "mw_com_config.json",
-        "/tests/integration/vsomeip.json": "vsomeip.json",
-    },
+    attributes = _DATA,
+    prefix = "/etc/someipd",
+    strip_prefix = strip_prefix.files_only(),
 )
 
-# ---------------------------------------------------------------------------
-# Package sample_client config files for the IFS
-# ---------------------------------------------------------------------------
-pkg_tar(
+pkg_files(
     name = "sample_client_configs_pkg",
-    srcs = [
-        "//tests/integration/sample_client:vsomeip.json",
-    ],
-    remap_paths = {
-        "/tests/integration/sample_client/vsomeip.json": "vsomeip.json",
-    },
+    srcs = ["//tests/integration/sample_client:vsomeip.json"],
+    attributes = _DATA,
+    prefix = "/etc/sample_client",
+    strip_prefix = strip_prefix.files_only(),
 )
 
-# ---------------------------------------------------------------------------
-# Package benchmark binaries for the IFS
-# ---------------------------------------------------------------------------
-pkg_tar(
+pkg_files(
     name = "benchmark_binaries_pkg",
     srcs = [
         "//tests/performance_benchmarks:echo_server",
         "//tests/performance_benchmarks:ipc_benchmarks",
     ],
-    include_runfiles = True,
-    package_dir = "/",
+    attributes = _EXEC,
+    prefix = "/usr/bin/tests",
+    strip_prefix = strip_prefix.files_only(),
 )
 
-# ---------------------------------------------------------------------------
-# Package benchmark config files for the IFS
-# ---------------------------------------------------------------------------
-pkg_tar(
+pkg_files(
     name = "benchmark_configs_pkg",
-    srcs = [
-        "//tests/performance_benchmarks:config/benchmark_mw_com_config.json",
-    ],
-    remap_paths = {
-        "/tests/performance_benchmarks/config/benchmark_mw_com_config.json": "benchmark_mw_com_config.json",
-    },
+    srcs = ["//tests/performance_benchmarks:config/benchmark_mw_com_config.json"],
+    attributes = _DATA,
+    prefix = "/etc/benchmarks",
+    strip_prefix = strip_prefix.files_only(),
 )
 
-# ---------------------------------------------------------------------------
-# QNX IFS image: boots QNX 8.0 with someipd + gatewayd inside with networking
-# ---------------------------------------------------------------------------
+_IFS_SRCS = [
+    ":gateway_binaries_pkg",
+    ":gateway_libs_pkg",
+    ":gateway_configs_pkg",
+    ":someipd_configs_pkg",
+    ":sample_client_configs_pkg",
+    ":benchmark_binaries_pkg",
+    ":benchmark_configs_pkg",
+]
+
+_IFS_EXTRA_BUILD_FILES = ["tools.build"]
+
+_IFS_PLATFORM = [
+    "@platforms//cpu:x86_64",
+    "@platforms//os:qnx",
+]
+
+_IFS_VISIBILITY = [
+    "//deployment:__subpackages__",
+    "//tests:__subpackages__",
+]
+
 qnx_ifs(
-    name = "someip_gateway_ifs",
+    name = "init_a",
     testonly = True,
-    srcs = [
-        "//deployment/qemu/configs:network_configs",
-        "//deployment/qemu/configs:ssh_configs",
-    ],
-    out = "someip_gateway_x86_64.ifs",
-    build_file = "init_x86_64.build",
-    target_compatible_with = [
-        "@platforms//cpu:x86_64",
-        "@platforms//os:qnx",
-    ],
-    tars = {
-        "GATEWAY_BINS": ":gateway_binaries_pkg",
-        "GATEWAY_LIBS": ":gateway_libs_pkg",
-        "GATEWAY_CONFIGS": ":gateway_configs_pkg",
-        "SOMEIPD_CONFIGS": ":someipd_configs_pkg",
-        "SAMPLE_CLIENT_CONFIGS": ":sample_client_configs_pkg",
-        "TEST_BINS": ":benchmark_binaries_pkg",
-        "BENCHMARK_CONFIGS": ":benchmark_configs_pkg",
-    },
-    visibility = [
-        "//deployment:__subpackages__",
-        "//tests:__subpackages__",
-    ],
+    srcs = _IFS_SRCS,
+    out = "someip_gateway_x86_64_a.ifs",
+    build_file = "init_a.build",
+    extra_build_files = _IFS_EXTRA_BUILD_FILES,
+    target_compatible_with = _IFS_PLATFORM,
+    visibility = _IFS_VISIBILITY,
+)
+
+qnx_ifs(
+    name = "init_b",
+    testonly = True,
+    srcs = _IFS_SRCS,
+    out = "someip_gateway_x86_64_b.ifs",
+    build_file = "init_b.build",
+    extra_build_files = _IFS_EXTRA_BUILD_FILES,
+    target_compatible_with = _IFS_PLATFORM,
+    visibility = _IFS_VISIBILITY,
 )

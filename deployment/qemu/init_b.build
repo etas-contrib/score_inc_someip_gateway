@@ -1,0 +1,101 @@
+# *******************************************************************************
+# Copyright (c) 2026 Contributors to the Eclipse Foundation
+#
+# See the NOTICE file(s) distributed with this work for additional
+# information regarding copyright ownership.
+#
+# This program and the accompanying materials are made available under the
+# terms of the Apache License Version 2.0 which is available at
+# https://www.apache.org/licenses/LICENSE-2.0
+#
+# SPDX-License-Identifier: Apache-2.0
+# *******************************************************************************
+
+# Guest B IFS — bridge IP 192.168.87.3. Differs from init_a.build only in
+# the IP and hostname; shared content lives in tools.build.
+
+[-optional]
+
+[image=0x3600000]
+[virtual=x86_64,multiboot] boot = {
+    startup-x86 -v -D8250..115200 -zz
+    PATH=/proc/boot
+    LD_LIBRARY_PATH=/proc/boot:/usr/lib
+    [+keeplinked] procnto-smp-instr
+}
+
+[+script] startup-script = {
+    procmgr_symlink /dev/shmem /tmp
+    display_msg Welcome to QNX 8.0 — SOME/IP Gateway, guest B (192.168.87.3)
+
+    SYSNAME=nto
+    TERM=qansi
+
+    devc-ser8250 &
+    waitfor /dev/ser1
+    reopen /dev/ser1
+
+    /proc/boot/startup.sh
+
+    [+session] /bin/sh &
+}
+
+[uid=0 gid=0 perms=0700] startup.sh = {
+    echo "---> Starting slogger2"
+    slogger2 -s 4096
+    waitfor /dev/slog
+
+    echo "---> Starting PCI Services"
+    pci-server --config=/proc/boot/pci_server.cfg
+    waitfor /dev/pci
+
+    echo "---> Starting pipe / random / fsevmgr"
+    pipe
+    waitfor /dev/pipe
+    random
+    waitfor /dev/random
+    fsevmgr
+    waitfor /dev/fsnotify
+
+    echo "---> Mounting RAM filesystems for /tmp_discovery and /var"
+    devb-ram ram capacity=1 blk ramdisk=10m,cache=512k,vnode=256 2>/dev/null
+    waitfor /dev/ram0
+    mkqnx6fs -q /dev/ram0
+    mount -w /dev/ram0 /tmp_discovery
+
+    # /var is remounted as ramdisk; preserve the baked sshd_config + host key.
+    cp /var/ssh/sshd_config /tmp/sshd_config_backup
+    cp /var/ssh/ssh_host_rsa_key /tmp/ssh_host_rsa_key_backup
+    devb-ram ram capacity=2 blk ramdisk=5m,cache=256k,vnode=64 2>/dev/null
+    waitfor /dev/ram1
+    mkqnx6fs -q /dev/ram1
+    mount -w /dev/ram1 /var
+    mkdir -p /var/ssh /var/run
+    cp /tmp/sshd_config_backup /var/ssh/sshd_config
+    cp /tmp/ssh_host_rsa_key_backup /var/ssh/ssh_host_rsa_key
+    chmod 400 /var/ssh/ssh_host_rsa_key
+
+    devc-pty -n 32
+
+    echo "---> Networking (192.168.87.3)"
+    io-sock -m phy -m pci -d vtnet_pci
+    waitfor /dev/socket
+    if_up -p vtnet0
+    ifconfig vtnet0 192.168.87.3 netmask 255.255.255.0 up
+    route add default 192.168.87.1
+
+    # SOME/IP-SD multicast (224.244.224.245).
+    ifconfig vtnet0 multicast 2>/dev/null || true
+    ifconfig vtnet0 allmulti 2>/dev/null || true
+    route add 224.0.0.0 -netmask 240.0.0.0 -iface vtnet0 2>/dev/null || true
+    sysctl -w net.inet.icmp.bmcastecho=1 > /dev/null 2>&1
+    sysctl -w net.inet.ip.mforwarding=1 > /dev/null 2>&1
+    sysctl -w net.inet.udp.recvspace=262144 > /dev/null 2>&1
+    sysctl -w qnx.sec.droproot=33:33 > /dev/null 2>&1
+
+    hostname qnx-guest-b
+
+    /proc/boot/sshd -f /var/ssh/sshd_config
+
+    echo "---> Guest B ready (192.168.87.3)"
+}

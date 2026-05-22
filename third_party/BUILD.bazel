@@ -14,7 +14,6 @@
 exports_files([
     "baselibs-multiarch.patch",
     "boost-asio_qnx.patch",
-    "score_itf_oci_conflict.patch",
     "vsomeip.BUILD.bazel",
     "vsomeip_qnx8.patch",
     "rules_foreign_cc-dont_block_network.patch",

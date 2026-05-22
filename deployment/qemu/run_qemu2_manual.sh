@@ -15,7 +15,7 @@
 #
 # Usage:
 #   1. Build the IFS image first:
-#        bazel build //deployment/qemu:someip_gateway_ifs --config=x86_64-qnx
+#        bazel build //deployment/qemu:init_b --config=x86_64-qnx
 #   2. Run QEMU only:
 #        ./deployment/qemu/run_qemu2_manual.sh
 #   3. Run QEMU and auto-start sample_client:
@@ -23,7 +23,7 @@
 
 set -euo pipefail
 
-IFS_IMAGE="bazel-bin/deployment/qemu/someip_gateway_x86_64.ifs"
+IFS_IMAGE="bazel-bin/deployment/qemu/someip_gateway_x86_64_b.ifs"
 GUEST_IP="192.168.87.3"
 SSH_USER="root"
 SSH_OPTS="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR"
@@ -35,7 +35,7 @@ fi
 
 if [[ ! -f "${IFS_IMAGE}" ]]; then
     echo "ERROR: IFS image not found at ${IFS_IMAGE}"
-    echo "Build it first: bazel build //deployment/qemu:someip_gateway_ifs --config=x86_64-qnx"
+    echo "Build it first: bazel build //deployment/qemu:init_b --config=x86_64-qnx"
     exit 1
 fi
 

@@ -10,7 +10,6 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 # *******************************************************************************
-load("@bazel_tools_python//quality:defs.bzl", "py_pytest")
 load("@score_itf//:defs.bzl", "py_itf_test")
 
 # Export vsomeip config for QEMU deployment
@@ -25,18 +24,25 @@ py_itf_test(
     srcs = [
         "someip_integration.py",
         "someip_network_analyzer.py",
-        "//tests/itf_updates:qemu_utils.py",
     ],
     args = [
         "-k",
         "TestSomeIPSD",
         "-s",
+        "--qemu-config-a=$(location //tests/integration/configs:qemu_a)",
+        "--qemu-config-b=$(location //tests/integration/configs:qemu_b)",
+        "--qemu-image-a=$(location //deployment/qemu:init_a)",
+        "--qemu-image-b=$(location //deployment/qemu:init_b)",
     ],
     data = [
-        "//deployment/qemu:run_qemu.sh",
-        "//deployment/qemu:someip_gateway_ifs",
+        "//deployment/qemu:init_a",
+        "//deployment/qemu:init_b",
+        "//tests/integration/configs:qemu_a",
+        "//tests/integration/configs:qemu_b",
     ],
-    plugins = [],  # No qemu plugin - uses qemu_utils.py for dual instance management
+    plugins = [
+        "//tests/itf_updates/dual_qemu:dual_qemu_plugin",
+    ],
     tags = [
         "exclusive",
         "qemu",

@@ -57,7 +57,7 @@ If you type `open` or `close` the command will be sent via network.
 
 ### QEMU x86_64 - based integration test and unit tests
 
-For integration tests where the communication between two QEMU instances is required, a custom implementation is used to start and manage the QEMU instances within the test logic. This is because ITF does not support starting multiple QEMU instances in parallel yet.
+The integration tests boot two QEMU/QNX guests via the **dual_qemu** ITF plugin at [tests/itf_updates/dual_qemu/](tests/itf_updates/dual_qemu/), reached as `target.primary` (192.168.87.2) and `target.secondary` (192.168.87.3). Per-guest QEMU configs: [qemu_a.json](tests/integration/configs/qemu_a.json) / [qemu_b.json](tests/integration/configs/qemu_b.json). Per-guest IFS: `//deployment/qemu:init_a` / `:init_b` — they differ only in [init_a.build](deployment/qemu/init_a.build) / [init_b.build](deployment/qemu/init_b.build); shared content lives in [tools.build](deployment/qemu/tools.build).
 
 **Prerequisite: Network Setup**
 The network bridge and tap interfaces must be configured before running the tests.
@@ -68,6 +68,8 @@ The network bridge and tap interfaces must be configured before running the test
 ```sh
 sudo deployment/qemu/setup_bridge.sh
 ```
+
+KVM also has to be available on the host (`/dev/kvm`, current user in the `kvm` group).
 
 It is recommended to run all tests with `--nocache_test_results` to ensure you are always running the latest version of the tests and not accidentally seeing cached results.
 

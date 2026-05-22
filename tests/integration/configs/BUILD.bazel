@@ -11,8 +11,14 @@
 # SPDX-License-Identifier: Apache-2.0
 # *******************************************************************************
 
-# System-wide profile for interactive shells
-export PATH=/proc/boot:/bin:/usr/bin:/sbin:/usr/sbin
-export LD_LIBRARY_PATH=/proc/boot:/usr/lib
-export TERM=qansi
-export PS1='# '
+filegroup(
+    name = "qemu_a",
+    srcs = ["qemu_a.json"],
+    visibility = ["//tests/integration:__pkg__"],
+)
+
+filegroup(
+    name = "qemu_b",
+    srcs = ["qemu_b.json"],
+    visibility = ["//tests/integration:__pkg__"],
+)
