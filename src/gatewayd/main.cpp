@@ -25,20 +25,17 @@
 #include "remote_service_instance.h"
 #include "score/filesystem/path.h"
 #include "score/gateway_ipc_binding/gateway_ipc_binding_client.hpp"
+#include "score/message_passing/client_factory.h"
 #include "score/message_passing/service_protocol_config.h"
-#include "score/message_passing/unix_domain/unix_domain_client_factory.h"
-#include "score/message_passing/unix_domain/unix_domain_server_factory.h"
 #include "score/mw/com/runtime.h"
-#include "score/mw/com/types.h"
 #include "score/socom/runtime.hpp"
+#include "score/someip/constants.h"
 #include "src/config/mw_someip_config_generated.h"
 #include "src/serializer/serializer.h"
 
 // In the main file we are not in any namespace
 using namespace score;
 using namespace score::someip_gateway::gatewayd;
-using score::someip_gateway::network_service::interfaces::message_transfer::
-    SomeipMessageTransferSkeleton;
 
 // Global flag to control application shutdown
 static std::atomic<bool> shutdown_requested{false};
@@ -157,29 +154,80 @@ int main(int argc, char* argv[]) {
     // Create the SOCom runtime
     auto socom_runtime = socom::create_runtime();
 
-    // Create the IPC server (Unix domain socket)
-    message_passing::ServiceProtocolConfig proto{"my_socket_name", 4096, 4096, 4096};
+    // "Connect" is the largest IPC message due to the embedded SHM metadata
+    static_assert(sizeof(gateway_ipc_binding::Connect{}) <= score::someip::kMaxIpcMessageSize,
+                  "Connect message exceeds max_send_size");
 
-    auto ipc_server = message_passing::UnixDomainServerFactory{}.Create(proto, {10, 10, 10});
-    if (!ipc_server) {
-        std::cerr << "Error: Failed to create IPC server: " << std::endl;
-        return 1;
-    }
-    // Create the IPC client connection
+    message_passing::ServiceProtocolConfig proto_config{
+        "someipd_gatewayd_ipc", score::someip::kMaxIpcMessageSize,
+        score::someip::kMaxIpcMessageSize, score::someip::kMaxIpcMessageSize};
+
     auto ipc_connection =
-        message_passing::UnixDomainClientFactory{}.Create(proto, {10, 10, false, false, false});
+        message_passing::ClientFactory{}.Create(proto_config, {10, 10, false, false, false});
 
-    // Create the binding client (auto-sends Connect when the socket is ready)
+    // Build shared memory configuration
+    // TODO: figure out why both server and client config is required, otherwise CRASH
+    gateway_ipc_binding::Shared_memory_manager_factory::Shared_memory_configuration shm_config;
+    gateway_ipc_binding::Shared_memory_manager_factory::Shared_memory_configuration
+        server_shm_config;
+    for (auto service_type_config : *config->service_types()) {
+        socom::Service_interface_identifier const iface{
+            service_type_config->service_type_name()->string_view(),
+            {service_type_config->service_version_major(),
+             static_cast<uint16_t>(service_type_config->service_version_minor())}};
+        // TODO: Handle multiple instances. Needs to be converted from integer ID to string.
+        // For initial impl, just use service name again.
+        socom::Service_instance const inst{service_type_config->service_type_name()->string_view()};
+
+        auto const service_id = service_type_config->service_id();
+
+        std::string shm_path = "/";
+        shm_path.append(service_type_config->service_type_name()->string_view())
+            .append("_")
+            .append(std::to_string(service_id));
+
+        auto shm_path_result =
+            gateway_ipc_binding::fixed_string_from_string<gateway_ipc_binding::Shared_memory_path>(
+                shm_path);
+        if (!shm_path_result.has_value()) {
+            std::cerr << "[gatewayd] shm path too long for service_id " << service_id << "\n";
+            continue;
+        }
+
+        if (service_type_config->local_service_instances()) {
+            shm_config[iface][inst] = {*shm_path_result, someip::kMaxMessageSize,
+                                       someip::kMaxSampleCount};
+            // TODO: this here should not be necessary as only the shm config of the producer is
+            // interesting for these local_service_instances
+            server_shm_config[iface][inst] = {*shm_path_result, someip::kMaxMessageSize,
+                                              someip::kMaxSampleCount};
+        } else if (service_type_config->remote_service_instances()) {
+            server_shm_config[iface][inst] = {*shm_path_result, someip::kMaxMessageSize,
+                                              someip::kMaxSampleCount};
+            // TODO: this here should not be necessary as only the shm config of the producer is
+            // interesting for these remote_service_instances.
+            shm_config[iface][inst] = {*shm_path_result, someip::kMaxMessageSize,
+                                       someip::kMaxSampleCount};
+        } else {
+            std::cerr << "[gatewayd] Service "
+                      << service_type_config->service_type_name()->string_view()
+                      << " has no local or remote instances, skipping shared memory config"
+                      << std::endl;
+        }
+    }
+
+    // Create the binding client (auto-sends Connect when the socket is ready).
     auto binding_client = gateway_ipc_binding::Gateway_ipc_binding_client::create(
         *socom_runtime, std::move(ipc_connection),
-        gateway_ipc_binding::Shared_memory_manager_factory::create(client_shm),
-        {},           // find_service_elements (optional hint for future use)
-        "gatewayd");  // optional identifier string shown in get_client_identifiers()
+        gateway_ipc_binding::Shared_memory_manager_factory::create(shm_config),
+        {},  // find_service_elements
+        score::gateway_ipc_binding::make_shared_memory_configs(server_shm_config), "gatewayd");
 
-    // 4. Wait for the IPC handshake to complete
+    // Wait for the IPC handshake to complete (requires someipd to be running).
     while (!binding_client->is_connected()) {
-        std::this_thread::sleep_for(1ms);
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
+    std::cout << "[gatewayd] IPC connection to someipd established" << std::endl;
 
     // Create local service instances from configuration
     std::vector<std::unique_ptr<LocalServiceInstance>> local_service_instances;
@@ -195,50 +243,12 @@ int main(int argc, char* argv[]) {
                           << service_instance_config->instance_specifier()->string_view() << ")"
                           << std::endl;
 
-                // service type
-                socom::Service_interface_identifier const iface{
-                    service_type_config->service_type_name()->string_view(),
-                    {service_type_config->service_version_major(),
-                     // TODO: align datatype to avoid cast
-                     static_cast<uint16_t>(service_type_config->service_version_minor())}};
-
-                // specific instance, TODO, come up with name scheme?
-                socom::Service_instance const inst{
-                    service_type_config->service_type_name()->string_view()};
-
-                // server-side config (must declare event/method counts)
-                socom::Server_service_interface_definition server_config{
-                    iface,
-                    // as methods are not supported yet, set to 0
-                    score::socom::to_num_of_methods(0),
-                    score::socom::to_num_of_events(service_type_config->events()->size())};
-
-                // Create and enable your server connector
-                auto disabled = socom_runtime->make_server_connector(
-                    server_config, inst,
-                    {
-                        .on_method_call = [](socom::Enabled_server_connector&, socom::Method_id,
-                                             socom::Payload, socom::Method_call_reply_data_opt,
-                                             socom::Posix_credentials const&)
-                            -> socom::Method_invocation::Uptr { return nullptr; },
-                        .on_event_subscription_change = [](socom::Enabled_server_connector&,
-                                                           socom::Event_id, socom::Event_state) {},
-                        .on_event_update_request = [](socom::Enabled_server_connector&,
-                                                      socom::Event_id) {},
-                        .on_method_call_payload_allocate =
-                            [](socom::Enabled_server_connector&,
-                               socom::Method_id) -> score::Result<socom::Writable_payload> {
-                            return MakeUnexpected(socom::Error::logic_error_id_out_of_range);
-                        },
-                    });
-                auto server = socom::Disabled_server_connector::enable(std::move(disabled.value()));
-
                 LocalServiceInstance::CreateAsyncLocalServices(
                     std::shared_ptr<const score::mw_someip_config::ServiceInstance>(
                         config, service_instance_config),
                     std::shared_ptr<const score::mw_someip_config::ServiceType>(
                         config, service_type_config),
-                    std::move(server), local_service_instances);
+                    *socom_runtime, local_service_instances);
             }
         }
     }
@@ -261,7 +271,7 @@ int main(int argc, char* argv[]) {
                         config, service_instance_config),
                     std::shared_ptr<const score::mw_someip_config::ServiceType>(
                         config, service_type_config),
-                    remote_service_instances);
+                    *socom_runtime, remote_service_instances);
             }
         }
     }
