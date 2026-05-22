@@ -36,8 +36,8 @@ void log_it_impl(Args... args) {
     std::cout << std::endl;
 }
 
-// #define log_it(...) log_it_impl(__PRETTY_FUNCTION__, ", this == ", this, ", ", __VA_ARGS__)
-#define log_it(...) void(nullptr)
+#define log_it(...) log_it_impl(__PRETTY_FUNCTION__, ", this == ", this, ", ", __VA_ARGS__)
+// #define log_it(...) void(nullptr)
 
 namespace score::gateway_ipc_binding {
 

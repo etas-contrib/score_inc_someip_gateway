@@ -21,6 +21,10 @@
 #include "score/socom/server_connector.hpp"
 #include "src/config/mw_someip_config_generated.h"
 
+namespace score::socom {
+class Runtime;
+}  // namespace score::socom
+
 namespace score::someip_gateway::gatewayd {
 
 /// \brief Instance of a locally available service
@@ -36,7 +40,7 @@ class LocalServiceInstance {
     /// \param service_instance_config Configuration for this service instance
     /// \param service_type_config Configuration for the service type of this instance
     /// \param ipc_proxy Generic proxy for IPC communication with the local service
-    /// \param TBD
+    /// \param socom_runtime SOCom runtime used to create the server connector
     /// \details This constructor initializes a local service instance with the necessary
     ///          components to forward local service messages to the someipd daemon, which
     ///          then handles the SOME/IP network communication with remote ECUs.
@@ -44,12 +48,12 @@ class LocalServiceInstance {
         std::shared_ptr<const mw_someip_config::ServiceInstance> service_instance_config,
         std::shared_ptr<const mw_someip_config::ServiceType> service_type_config,
         score::mw::com::GenericProxy&& ipc_proxy,
-        score::socom::Enabled_server_connector::Uptr server_connector);
+        socom::Runtime& socom_runtime);
 
     /// \brief Asynchronously creates a local service instance
     /// \param service_instance_config Configuration for the service instance to create
     /// \param service_type_config Configuration for the service type of the instance to create
-    /// \param TBD
+    /// \param socom_runtime SOCom runtime used to create the server connector
     /// \param instances Reference to the vector to store the created local service instance
     /// \return Result containing a FindServiceHandle on success, or an error on failure
     /// \details This static factory method asynchronously searches for and creates a local
@@ -60,7 +64,7 @@ class LocalServiceInstance {
     static Result<mw::com::FindServiceHandle> CreateAsyncLocalServices(
         std::shared_ptr<const mw_someip_config::ServiceInstance> service_instance_config,
         std::shared_ptr<const mw_someip_config::ServiceType> service_type_config,
-        socom::Enabled_server_connector::Uptr server_connector,
+        socom::Runtime& socom_runtime,
         std::vector<std::unique_ptr<LocalServiceInstance>>& instances);
 
     LocalServiceInstance(const LocalServiceInstance&) = delete;
