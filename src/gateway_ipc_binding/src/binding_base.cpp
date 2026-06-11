@@ -199,8 +199,6 @@ void Gateway_ipc_binding_base::on_receive_message(Client_id client_id, Reply_cha
 
 void Gateway_ipc_binding_base::handle_connect_message(Client_id client_id, Reply_channel& conn,
                                                       Connect const& msg) {
-    // TODO handle msg.payload and perform any necessary setup for the new connection
-
     // serialize reply and send back to client
     Message_frame<Connect_reply> reply;
     reply.payload.status = true;
