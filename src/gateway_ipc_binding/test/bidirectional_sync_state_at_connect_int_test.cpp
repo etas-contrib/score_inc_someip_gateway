@@ -63,10 +63,15 @@ TEST_P(Gateway_ipc_binding_bidirectional_sync_state_at_connect_integration_test,
               std::future_status::ready);
 }
 
-TEST_P(Gateway_ipc_binding_bidirectional_sync_state_at_connect_integration_test,
+using Gateway_ipc_binding_bidirectional_sync_state_connected_integration_test =
+    Gateway_ipc_binding_bidirectional_test<Gateway_ipc_binding_integration_test>;
+
+INSTANTIATE_TEST_SUITE_P(, Gateway_ipc_binding_bidirectional_sync_state_connected_integration_test,
+                         Values(Direction::Client_to_server, Direction::Server_to_client),
+                         readable_test_names);
+
+TEST_P(Gateway_ipc_binding_bidirectional_sync_state_connected_integration_test,
        ipc_server_destruction_with_server_connector) {
-    this->start_and_wait_for_client_connection();
-
     Server_connector_with_callbacks server(get_server_runtime(), socom_server_config, instance);
 
     // kill the IPC server
@@ -74,10 +79,8 @@ TEST_P(Gateway_ipc_binding_bidirectional_sync_state_at_connect_integration_test,
     EXPECT_FALSE(this->client->is_connected());
 }
 
-TEST_P(Gateway_ipc_binding_bidirectional_sync_state_at_connect_integration_test,
+TEST_P(Gateway_ipc_binding_bidirectional_sync_state_connected_integration_test,
        ipc_server_destruction_with_client_connector) {
-    this->start_and_wait_for_client_connection();
-
     Client_connector_with_callbacks client;
     client.create_connector(get_client_runtime(), socom_server_config, instance);
 
@@ -86,20 +89,16 @@ TEST_P(Gateway_ipc_binding_bidirectional_sync_state_at_connect_integration_test,
     EXPECT_FALSE(this->client->is_connected());
 }
 
-TEST_P(Gateway_ipc_binding_bidirectional_sync_state_at_connect_integration_test,
+TEST_P(Gateway_ipc_binding_bidirectional_sync_state_connected_integration_test,
        ipc_client_destruction_with_server_connector) {
-    this->start_and_wait_for_client_connection();
-
     Server_connector_with_callbacks server(get_server_runtime(), socom_server_config, instance);
 
     // kill the IPC client
     this->client.reset();
 }
 
-TEST_P(Gateway_ipc_binding_bidirectional_sync_state_at_connect_integration_test,
+TEST_P(Gateway_ipc_binding_bidirectional_sync_state_connected_integration_test,
        ipc_client_destruction_with_client_connector) {
-    this->start_and_wait_for_client_connection();
-
     Client_connector_with_callbacks client;
     client.create_connector(get_client_runtime(), socom_server_config, instance);
 
@@ -107,10 +106,8 @@ TEST_P(Gateway_ipc_binding_bidirectional_sync_state_at_connect_integration_test,
     this->client.reset();
 }
 
-TEST_P(Gateway_ipc_binding_bidirectional_sync_state_at_connect_integration_test,
+TEST_P(Gateway_ipc_binding_bidirectional_sync_state_connected_integration_test,
        ipc_server_destruction_with_connected_service) {
-    this->start_and_wait_for_client_connection();
-
     Server_connector_with_callbacks server(get_server_runtime(), socom_server_config, instance);
     Client_connector_with_callbacks client(get_client_runtime(), socom_server_config, instance);
 
@@ -119,10 +116,8 @@ TEST_P(Gateway_ipc_binding_bidirectional_sync_state_at_connect_integration_test,
     EXPECT_FALSE(this->client->is_connected());
 }
 
-TEST_P(Gateway_ipc_binding_bidirectional_sync_state_at_connect_integration_test,
+TEST_P(Gateway_ipc_binding_bidirectional_sync_state_connected_integration_test,
        ipc_client_destruction_with_connected_service) {
-    this->start_and_wait_for_client_connection();
-
     Server_connector_with_callbacks server(get_server_runtime(), socom_server_config, instance);
     Client_connector_with_callbacks client(get_client_runtime(), socom_server_config, instance);
 
