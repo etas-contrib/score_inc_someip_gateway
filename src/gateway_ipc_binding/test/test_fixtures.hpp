@@ -47,7 +47,19 @@ class Gateway_ipc_binding_unconnected_integration_test : public ::testing::Test,
     socom::Runtime::Uptr runtime_server = score::socom::create_runtime();
     socom::Runtime::Uptr runtime_client = score::socom::create_runtime();
 
+    // Gateway_ipc_binding_server callbacks
     On_find_service_change_mock mock_on_find_service_change_cb;
+
+    // Client_connector callbacks
+    socom::Service_state_change_callback_mock mock_service_state_change_cb;
+    socom::Event_update_callback_mock mock_event_update_cb;
+    socom::Event_payload_allocate_callback_mock mock_event_payload_allocate_cb;
+
+    // Server_connector callbacks
+    socom::Method_call_credentials_callback_mock mock_method_call_credentials_cb;
+    socom::Event_subscription_change_callback_mock mock_event_subscription_change_cb;
+    socom::Event_request_update_callback_mock mock_event_request_update_cb;
+    socom::Method_call_payload_allocate_callback_mock mock_method_payload_allocate_cb;
 
     std::unique_ptr<Gateway_ipc_binding_server> server = create_ipc_server(*runtime_server);
     std::unique_ptr<Gateway_ipc_binding_client> client =
@@ -101,15 +113,6 @@ class Gateway_ipc_binding_unconnected_integration_test : public ::testing::Test,
 class Gateway_ipc_binding_integration_test
     : public Gateway_ipc_binding_unconnected_integration_test {
    protected:
-    socom::Service_state_change_callback_mock mock_service_state_change_cb;
-    socom::Event_update_callback_mock mock_event_update_cb;
-    socom::Event_payload_allocate_callback_mock mock_event_payload_allocate_cb;
-
-    socom::Method_call_credentials_callback_mock mock_method_call_credentials_cb;
-    socom::Event_subscription_change_callback_mock mock_event_subscription_change_cb;
-    socom::Event_request_update_callback_mock mock_event_request_update_cb;
-    socom::Method_call_payload_allocate_callback_mock mock_method_payload_allocate_cb;
-
     Gateway_ipc_binding_integration_test() : Gateway_ipc_binding_unconnected_integration_test() {
         start_and_wait_for_client_connection();
     }

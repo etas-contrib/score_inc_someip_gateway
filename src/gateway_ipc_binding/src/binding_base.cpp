@@ -204,6 +204,20 @@ void Gateway_ipc_binding_base::handle_connect_message(Client_id client_id, Reply
     reply.payload.status = true;
 
     (void)conn.send(reply);
+
+    // Re-send any pending Request_service messages that were sent before this client connected.
+    // Mirrors handle_connect_reply_message on the client side.
+    std::lock_guard<std::recursive_mutex> const lock{m_mutex};
+    m_service_states.for_each([&conn](auto const& key, auto& state) {
+        (void)key;
+        if (state.requested) {
+            Message_frame<Request_service> msg;
+            msg.payload.service_id = make_service(state.service);
+            msg.payload.instance_id = make_instance_id(state.instance);
+            msg.payload.in_use = true;
+            (void)conn.send(msg);
+        }
+    });
 }
 
 void Gateway_ipc_binding_base::handle_connect_reply_message(Connect_reply const& msg) {
