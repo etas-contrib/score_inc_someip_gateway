@@ -111,9 +111,12 @@ TEST_P(Gateway_ipc_binding_bidirectional_sync_state_connected_integration_test,
     Server_connector_with_callbacks server(get_server_runtime(), socom_server_config, instance);
     Client_connector_with_callbacks client(get_client_runtime(), socom_server_config, instance);
 
-    // kill and restart the IPC server
+    // kill the IPC server
     this->server.reset();
     EXPECT_FALSE(this->client->is_connected());
+
+    EXPECT_EQ(client.client_disconnected_promise.get_future().wait_for(very_long_timeout),
+              std::future_status::ready);
 }
 
 TEST_P(Gateway_ipc_binding_bidirectional_sync_state_connected_integration_test,
@@ -121,8 +124,32 @@ TEST_P(Gateway_ipc_binding_bidirectional_sync_state_connected_integration_test,
     Server_connector_with_callbacks server(get_server_runtime(), socom_server_config, instance);
     Client_connector_with_callbacks client(get_client_runtime(), socom_server_config, instance);
 
-    // kill and restart the IPC client
+    // kill the IPC client
     this->client.reset();
+
+    EXPECT_EQ(client.client_disconnected_promise.get_future().wait_for(very_long_timeout),
+              std::future_status::ready);
 }
+
+// TEST_P(Gateway_ipc_binding_bidirectional_sync_state_connected_integration_test,
+//        ipc_server_destruction_with_connected_service_and_reconnect) {
+//     Server_connector_with_callbacks server(get_server_runtime(), socom_server_config, instance);
+//     Client_connector_with_callbacks client(get_client_runtime(), socom_server_config, instance);
+
+//     // kill and restart the IPC server
+//     this->server.reset();
+//     EXPECT_FALSE(this->client->is_connected());
+
+//     this->server = create_ipc_server(*runtime_server);
+// }
+
+// TEST_P(Gateway_ipc_binding_bidirectional_sync_state_connected_integration_test,
+//        ipc_client_destruction_with_connected_service_and_reconnect) {
+//     Server_connector_with_callbacks server(get_server_runtime(), socom_server_config, instance);
+//     Client_connector_with_callbacks client(get_client_runtime(), socom_server_config, instance);
+
+//     // kill and restart the IPC client
+//     this->client.reset();
+// }
 
 }  // namespace score::gateway_ipc_binding

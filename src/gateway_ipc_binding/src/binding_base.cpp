@@ -93,9 +93,10 @@ void Gateway_ipc_binding_base::add_client(Client_id const& client_id,
 }
 
 void Gateway_ipc_binding_base::remove_client(Client_id const& client_id) {
+    std::vector<score::socom::Enabled_server_connector::Uptr> removed_connectors;
     std::lock_guard<std::recursive_mutex> const lock{m_mutex};
     m_connections.remove_client(client_id);
-    remove_client_state_locked(client_id);
+    removed_connectors = remove_client_state_locked(client_id);
 }
 
 void Gateway_ipc_binding_base::on_receive_message(Client_id client_id, Reply_channel& conn,
@@ -674,9 +675,10 @@ void Gateway_ipc_binding_base::maybe_send_connect_service_locked(Key_t const& ke
     state.send_connect_service(m_next_local_id, m_keys, m_slot_managers, send_func);
 }
 
-void Gateway_ipc_binding_base::remove_client_state_locked(Client_id client_id) noexcept {
+std::vector<score::socom::Enabled_server_connector::Uptr>
+Gateway_ipc_binding_base::remove_client_state_locked(Client_id client_id) {
     m_service_states.remove_event_subscriptions_for_client(client_id);
-    m_service_states.remove_offers(client_id);
+    auto connectors = m_service_states.remove_offers(client_id);
 
     for (auto it = m_service_to_interested_peers.begin();
          it != m_service_to_interested_peers.end();) {
@@ -691,6 +693,8 @@ void Gateway_ipc_binding_base::remove_client_state_locked(Client_id client_id) n
     m_id_mapping.remove_client(client_id);
     m_pending_connects.clear_pending_connects(
         [&client_id](auto const& val) { return val.client_id == client_id; });
+
+    return connectors;
 }
 
 void Gateway_ipc_binding_base::clear_pending_connects_for_key_locked(

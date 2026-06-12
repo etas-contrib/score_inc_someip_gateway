@@ -256,10 +256,27 @@ class Service_states {
         return std::move(state.client_connector);
     }
 
-    void remove_offers(Client_id const& client_id) {
-        for (auto& entry : m_service_states) {
-            entry.second.offers.erase(client_id);
+    std::vector<score::socom::Enabled_server_connector::Uptr> remove_offers(
+        Client_id const& client_id) {
+        std::vector<score::socom::Enabled_server_connector::Uptr> removed_connectors;
+
+        for (auto& [key, state] : m_service_states) {
+            (void)key;
+            if (state.offers.erase(client_id) == 0U) {
+                continue;
+            }
+
+            if (!state.offers.empty()) {
+                continue;
+            }
+
+            state.event_subscriptions.clear();
+            if (state.enabled_connector != nullptr) {
+                removed_connectors.push_back(std::move(state.enabled_connector));
+            }
         }
+
+        return removed_connectors;
     }
 
     std::vector<score::socom::Client_connector::Uptr> release_client_connectors() {

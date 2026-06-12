@@ -105,7 +105,8 @@ class Gateway_ipc_binding_base : public Service_request_sender {
 
     void maybe_send_connect_service_locked(Key_t const& key, Service_state& state) noexcept;
 
-    void remove_client_state_locked(Client_id client_id) noexcept;
+    std::vector<score::socom::Enabled_server_connector::Uptr> remove_client_state_locked(
+        Client_id client_id);
 
     void clear_pending_connects_for_key_locked(Key_t const& key,
                                                Client_id const& client_id) noexcept;
