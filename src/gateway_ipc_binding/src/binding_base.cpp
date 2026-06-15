@@ -263,6 +263,19 @@ void Gateway_ipc_binding_base::handle_request_service_message(Client_id client_i
         return;
     }
 
+    if (m_service_states.has_connector(key)) {
+        // This service is already bridged via an existing server connector, so creating another
+        // client connector for the same key would duplicate the SOCom connection.
+        return;
+    }
+
+    auto const state_opt = m_service_states.get(key);
+    if (state_opt && state_opt->get().requested) {
+        // This key is already tracked as a local request via the service bridge. Creating
+        // another bridge-owned client connector would register a duplicate SOCom client.
+        return;
+    }
+
     log_it("Creating client connector for service request");
 
     // create Client_connector and send offer once Enabled_server_connector is available

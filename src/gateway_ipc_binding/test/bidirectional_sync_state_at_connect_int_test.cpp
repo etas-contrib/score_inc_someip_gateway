@@ -176,13 +176,22 @@ TEST_P(Gateway_ipc_binding_bidirectional_sync_state_connected_integration_test,
               std::future_status::ready);
 }
 
-// TEST_P(Gateway_ipc_binding_bidirectional_sync_state_connected_integration_test,
-//        ipc_client_destruction_with_connected_service_and_reconnect) {
-//     Server_connector_with_callbacks server(get_server_runtime(), socom_server_config, instance);
-//     Client_connector_with_callbacks client(get_client_runtime(), socom_server_config, instance);
+TEST_P(Gateway_ipc_binding_bidirectional_sync_state_connected_integration_test,
+       ipc_client_destruction_with_connected_service_and_reconnect) {
+    Server_connector_with_callbacks server(get_server_runtime(), socom_server_config, instance);
+    Client_connector_with_callbacks client(get_client_runtime(), socom_server_config, instance);
 
-//     // kill and restart the IPC client
-//     this->client.reset();
-// }
+    // kill the IPC client
+    this->client.reset();
+    EXPECT_EQ(client.client_disconnected_promise.get_future().wait_for(very_long_timeout),
+              std::future_status::ready);
+
+    // restart the IPC client
+    client.expect_client_connected(socom_server_config);
+    this->client =
+        create_ipc_client(*runtime_client, client_shm_config, {}, server_shared_memory_configs);
+    EXPECT_EQ(client.client_connected_promise.get_future().wait_for(very_long_timeout),
+              std::future_status::ready);
+}
 
 }  // namespace score::gateway_ipc_binding
