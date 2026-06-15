@@ -58,8 +58,7 @@ class Gateway_ipc_binding_client_impl : public Gateway_ipc_binding_client, publi
         // ensure no callbacks are in-flight that might access member variables after they've been
         // destroyed
         m_channel->Stop();
-        while (m_channel->GetState() !=
-               score::message_passing::IClientConnection::State::kStopped) {
+        while (!m_stopped) {
             std::this_thread::sleep_for(std::chrono::milliseconds(10));
         }
     }
@@ -94,10 +93,29 @@ class Gateway_ipc_binding_client_impl : public Gateway_ipc_binding_client, publi
 
                 break;
             }
-            case score::message_passing::IClientConnection::State::kStopped:
+            case score::message_passing::IClientConnection::State::kStopped: {
                 m_connected = false;
                 m_binding_base.remove_client(client_id);
+
+                switch (m_channel->GetStopReason()) {
+                    case score::message_passing::IClientConnection::StopReason::
+                        kUserRequested:  // fall through
+                    case score::message_passing::IClientConnection::StopReason::
+                        kPermission:  // fall through
+                    case score::message_passing::IClientConnection::StopReason::
+                        kShutdown:  // fall through
+                        // Do not attempt to restart the channel in these cases as they indicate an
+                        // intentional stop from either the client or server side.
+                        m_stopped = true;
+                        break;
+                    default:
+                        // For other stop reasons, attempt to restart the channel to allow recovery
+                        // from transient issues.
+                        m_channel->Restart();
+                        break;
+                }
                 break;
+            }
             case score::message_passing::IClientConnection::State::kStarting:
             case score::message_passing::IClientConnection::State::kStopping:
             default:
@@ -136,6 +154,7 @@ class Gateway_ipc_binding_client_impl : public Gateway_ipc_binding_client, publi
 
    private:
     std::atomic<bool> m_connected{false};
+    std::atomic<bool> m_stopped{false};
     // There is only ever one connection: from this instance to the server
     constexpr static Client_id client_id{0};
     Gateway_ipc_binding_base m_binding_base;
