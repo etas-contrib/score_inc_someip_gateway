@@ -101,6 +101,19 @@ scoreipgw_pkg_tar(
 )
 
 # =============================================================================
+# vsomeip runtime shared libraries
+#
+# Re-exports the @vsomeip shared libraries for downstream bzlmod consumers.
+# The @vsomeip http_archive is module-private and not directly reachable.
+# =============================================================================
+
+filegroup(
+    name = "vsomeip_shared_libs",
+    srcs = ["@vsomeip"],
+    visibility = ["//visibility:public"],
+)
+
+# =============================================================================
 # Convenience target
 # =============================================================================
 
