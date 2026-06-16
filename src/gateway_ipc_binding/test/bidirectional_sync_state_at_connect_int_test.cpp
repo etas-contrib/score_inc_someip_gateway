@@ -76,7 +76,8 @@ TEST_P(Gateway_ipc_binding_bidirectional_sync_state_connected_integration_test,
 
     // kill the IPC server
     this->server.reset();
-    EXPECT_FALSE(this->client->is_connected());
+    EXPECT_TRUE(
+        wait_on_connection_state(*this->client, Connection_state::Disconnected, very_long_timeout));
 }
 
 TEST_P(Gateway_ipc_binding_bidirectional_sync_state_connected_integration_test,
@@ -86,7 +87,8 @@ TEST_P(Gateway_ipc_binding_bidirectional_sync_state_connected_integration_test,
 
     // kill the IPC server
     this->server.reset();
-    EXPECT_FALSE(this->client->is_connected());
+    EXPECT_TRUE(
+        wait_on_connection_state(*this->client, Connection_state::Disconnected, very_long_timeout));
 }
 
 TEST_P(Gateway_ipc_binding_bidirectional_sync_state_connected_integration_test,
@@ -113,8 +115,8 @@ TEST_P(Gateway_ipc_binding_bidirectional_sync_state_connected_integration_test,
 
     // kill the IPC server
     this->server.reset();
-    EXPECT_FALSE(this->client->is_connected());
-
+    EXPECT_TRUE(
+        wait_on_connection_state(*this->client, Connection_state::Disconnected, very_long_timeout));
     EXPECT_EQ(client.client_disconnected_promise.get_future().wait_for(very_long_timeout),
               std::future_status::ready);
 }
@@ -135,7 +137,8 @@ TEST_P(Gateway_ipc_binding_bidirectional_sync_state_connected_integration_test,
        ipc_server_destruction_and_reconnect) {
     // kill the IPC server
     this->server.reset();
-    EXPECT_FALSE(this->client->is_connected());
+    EXPECT_TRUE(
+        wait_on_connection_state(*this->client, Connection_state::Disconnected, very_long_timeout));
 
     // restart the IPC server
     this->server = create_ipc_server(*runtime_server);
@@ -151,9 +154,8 @@ TEST_P(Gateway_ipc_binding_bidirectional_sync_state_connected_integration_test,
     this->client =
         create_ipc_client(*runtime_client, client_shm_config, {}, server_shared_memory_configs);
 
-    while (!this->client->is_connected()) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(1));
-    }
+    EXPECT_TRUE(
+        wait_on_connection_state(*this->client, Connection_state::Connected, very_long_timeout));
 }
 
 TEST_P(Gateway_ipc_binding_bidirectional_sync_state_connected_integration_test,
@@ -163,7 +165,8 @@ TEST_P(Gateway_ipc_binding_bidirectional_sync_state_connected_integration_test,
 
     // kill the IPC server
     this->server.reset();
-    EXPECT_FALSE(this->client->is_connected());
+    EXPECT_TRUE(
+        wait_on_connection_state(*this->client, Connection_state::Disconnected, very_long_timeout));
     EXPECT_EQ(client.client_disconnected_promise.get_future().wait_for(very_long_timeout),
               std::future_status::ready);
 

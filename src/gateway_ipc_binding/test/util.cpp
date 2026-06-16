@@ -148,4 +148,16 @@ void Server_connector_with_callbacks::create_connector(
     assert(connector);
 }
 
+bool wait_on_connection_state(Gateway_ipc_binding_client const& client,
+                              Connection_state expected_state, std::chrono::milliseconds timeout) {
+    auto start = std::chrono::steady_clock::now();
+    while (client.is_connected() != (expected_state == Connection_state::Connected)) {
+        if (std::chrono::steady_clock::now() - start > timeout) {
+            return false;
+        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    }
+    return true;
+}
+
 }  // namespace score::gateway_ipc_binding

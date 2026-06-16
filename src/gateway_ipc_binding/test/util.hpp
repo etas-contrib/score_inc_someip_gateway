@@ -19,6 +19,7 @@
 #include <cstddef>
 #include <future>
 #include <memory>
+#include <score/gateway_ipc_binding/gateway_ipc_binding_client.hpp>
 #include <score/gateway_ipc_binding/shared_memory_slot_manager.hpp>
 #include <score/socom/callback_mocks.hpp>
 #include <score/socom/client_connector.hpp>
@@ -100,6 +101,11 @@ inline socom::Writable_payload create_payload(socom::Enabled_server_connector& c
     std::copy(expected_payload.begin(), expected_payload.end(), wdata.data());
     return std::move(*payload_handle);
 }
+
+enum class Connection_state { Connected, Disconnected };
+
+bool wait_on_connection_state(Gateway_ipc_binding_client const& client,
+                              Connection_state expected_state, std::chrono::milliseconds timeout);
 
 }  // namespace score::gateway_ipc_binding
 
