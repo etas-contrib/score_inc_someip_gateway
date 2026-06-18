@@ -175,7 +175,7 @@ class BenchmarkFixture {
         if (!initialized_) {
             return;
         }
-
+        std::cout << "ALL DONE" << std::endl;
         if (response_proxy_.has_value()) {
             response_proxy_->echo_response_tiny_.UnsetReceiveHandler();
             response_proxy_->echo_response_small_.UnsetReceiveHandler();

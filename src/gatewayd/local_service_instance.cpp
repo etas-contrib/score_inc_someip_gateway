@@ -41,7 +41,7 @@ LocalServiceInstance::LocalServiceInstance(
       ipc_proxy_(std::move(ipc_proxy)),
       someip_message_skeleton_(someip_message_skeleton) {
     // Set up IPC event handlers
-    auto& events = ipc_proxy_.GetEvents();
+    auto events = ipc_proxy_.GetEvents();
 
     for (auto event_config : *service_type_config_->events()) {
         auto result = events.find(event_config->event_name()->string_view());
