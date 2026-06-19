@@ -20,7 +20,6 @@
 #include "messages.hpp"
 #include "runtime_impl.hpp"
 #include "score/socom/client_connector.hpp"
-#include "score/mw/log/logging.h"
 #include "server_connector_impl.hpp"
 
 namespace score {
@@ -57,10 +56,10 @@ Impl::~Impl() noexcept {
     // death tests cannot contribute to code coverage
     auto const log_on_deadlock = [this]() {
         // destruction from within callback detected
-        score::mw::log::LogError() << "SOCom error: A callback causes the Client_connector instance to be destroyed "
+        std::cerr << "SOCom error: A callback causes the Client_connector instance to be destroyed "
                      "by which the callback is called. This leads to a deadlock because the "
                      "destructor waits until all callbacks are done.: interface="
-                  << m_configuration.interface.id;
+                  << m_configuration.interface.id << std::endl;
     };
 
     m_deadlock_detector.check_deadlock(log_on_deadlock);
