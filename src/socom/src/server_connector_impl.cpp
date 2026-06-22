@@ -13,8 +13,6 @@
 
 #include "server_connector_impl.hpp"
 
-#include <score/mw/log/logging.h>
-
 #include <cassert>
 #include <iostream>
 #include <memory>
