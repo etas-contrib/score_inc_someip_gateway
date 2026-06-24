@@ -987,7 +987,7 @@ SOME/IP Message Protocol Compliance
      - ``test_someip_message_format::TestSomeipResponseFields::test_ets_005_response_uses_big_endian_byte_order``
    * - §5.1.6 — SOMEIP_ETS_058
      - TC8-MSG-031
-     - ``msg_malformed_handling``
+     - ``msg_malformed``
      - ``test_someip_message_format::TestSomeipFireAndForgetAndErrors::test_ets_058_oversized_length_field_no_crash``
    * - §5.1.5.7 — SOMEIPSRV_RPC_19
      - TC8-MSG-032

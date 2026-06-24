@@ -688,6 +688,31 @@ observe again.
 Notification sent after first SET (value changed from initial); no duplicate
 notification sent when SET issues the same value a second time.
 
+TC8-EVT-008 — Cyclic Notification Rate
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:OA Spec Reference: §5.1.5.7 — SOMEIPSRV_RPC_15
+:Test Module: ``test_event_notification.py``
+:Test Function: ``TestEventNotificationFormat::test_rpc_15_cyclic_notification_rate``
+:Requirement: ``comp_req__tc8_conformance__evt_subscription``
+:DUT Config: ``tc8_someipd_service.json``
+
+**Purpose:**
+Verify that cyclic event notifications arrive at the configured cycle period
+(``update-cycle: 500`` ms).
+
+**Preconditions:**
+
+- DUT offering service, subscription acknowledged.
+- Event 0x0777 configured with ``update-cycle: 500`` ms.
+
+**Stimuli:**
+Subscribe to eventgroup ``0x4455``, collect 4 notification timestamps.
+
+**Expected Result:**
+Inter-notification intervals are within [200 ms, 1200 ms] — a 2.4× tolerance
+band accounting for OS jitter and initial-value notification.
+
 Field Conformance Tests
 -----------------------
 
@@ -3270,7 +3295,7 @@ TC8-MSG-031 — Oversized Length Field Does Not Crash DUT (ETS_058)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 :OA Reference: §5.1.6 — SOMEIP_ETS_058
-:Requirement: ``comp_req__tc8_conformance__msg_malformed_handling``
+:Requirement: ``comp_req__tc8_conformance__msg_malformed``
 :Test Function: ``TestSomeipFireAndForgetAndErrors::test_ets_058_oversized_length_field_no_crash``
 
 **Purpose:**
@@ -3284,3 +3309,27 @@ UDP payload is only 16 bytes.
 **Expected Result:**
 DUT discards the malformed message; a subsequent valid REQUEST receives a correct
 RESPONSE (DUT alive).
+
+TC8-MSG-032 — Session ID Echoed in Error Response (RPC_19)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:OA Spec Reference: §5.1.5.7 — SOMEIPSRV_RPC_19
+:Test Module: ``test_someip_message_format.py``
+:Test Function: ``TestSomeipResponseFields::test_rpc_19_session_id_echoed_in_error``
+:Requirement: ``comp_req__tc8_conformance__msg_resp_header``
+:DUT Config: ``tc8_someipd_service.json``
+
+**Purpose:**
+Verify that error response session_id equals the request session_id.
+
+**Preconditions:**
+
+- DUT started, service offered.
+
+**Stimuli:**
+Send REQUEST with a known ``session_id`` to an unknown method (triggering
+E_UNKNOWN_METHOD error response).
+
+**Expected Result:**
+Error RESPONSE has ``session_id`` matching the REQUEST value
+(per PRS_SOMEIP_00137).

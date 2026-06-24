@@ -202,8 +202,8 @@ The component requirements are grouped by TC8 test area:
      - 1
      - Notification delivery lifecycle (subscribe, event ID, multicast, stop)
    * - Field Conformance
-     - 2
-     - Initial value on subscribe, getter/setter methods
+     - 3
+     - Initial value on subscribe, getter/setter methods, on-change-only field notification
    * - TCP Transport Binding
      - 1
      - TCP reliable transport for RPC, field get/set, event notification
@@ -539,6 +539,24 @@ Component Requirements — Field Conformance
    Note: Traces to SOME/IP specification section 5.3 (Fields — getter/setter
    methods) and AUTOSAR SWS_CM_00720/SWS_CM_00721.
    Covers TC8-FLD-003 and TC8-FLD-004 from the test strategy.
+
+.. comp_req:: TC8 Field Getter/Setter Notification Behavior
+   :id: comp_req__tc8_conformance__fld_getter_setter
+   :status: valid
+   :tags: tc8, conformance, fields, notification
+   :satisfies: feat_req__tc8_conformance__conformance
+   :belongs_to: comp__someipd
+   :safety: QM
+   :security: NO
+   :reqtype: Functional
+
+   The conformance test suite shall verify that ``someipd`` sends a field event
+   notification only when the field value actually changes, not on every cyclic
+   trigger or repeated SET with the same value.
+
+   Note: Traces to OA TC8 v3.0 §5.1.5.7 SOMEIPSRV_RPC_16 (on-change-only
+   notification for fields).
+   Covered by TC8-EVT-007 in ``test_event_notification.py``.
 
 Component Requirements — TCP Transport Binding
 -----------------------------------------------
