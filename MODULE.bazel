@@ -221,8 +221,8 @@ single_version_override(
 bazel_dep(name = "score_communication", version = "0.2.1")
 git_override(
     module_name = "score_communication",
-    commit = "f913fd2545415d75847e42dd982e1f3e95fe0b36",
-    remote = "https://github.com/eclipse-score/communication.git",
+    branch = "release/v0.2.2-etas.1",
+    remote = "https://github.com/etas-contrib/score_communication.git",
 )
 
 # ============================================================================
