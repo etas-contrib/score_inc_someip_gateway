@@ -40,27 +40,6 @@ It belongs to a set of three documents that work together:
      - Maps external OA spec test case IDs to internal test IDs,
        component requirements, and Python test functions.
 
-Why this hierarchy?
-^^^^^^^^^^^^^^^^^^^
-
-S-CORE projects use a three-level requirement hierarchy (defined by the
-docs-as-code guidelines). Each requirement must be traceable upward to a
-business goal and downward to a test:
-
-* **Stakeholder requirements** (``stkh_req``) — *why* something is needed
-  (business or interoperability goal).
-* **Feature requirements** (``feat_req``) — *what* capability is needed.
-  Each ``feat_req`` links to a ``stkh_req`` via ``:satisfies:``.
-* **Component requirements** (``comp_req``) — the *specific, testable
-  behaviour*. Each ``comp_req`` links to a ``feat_req`` via
-  ``:satisfies:``, and each test links back via
-  ``record_property("FullyVerifies", ...)``.
-
-This creates **bidirectional traceability**: from a stakeholder need down
-to the test that proves it is met, and from any test back up to the
-business goal. Sphinx-Needs tooling uses these links to generate coverage
-matrices and detect gaps.
-
 How the feature / component split works for TC8
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -78,97 +57,6 @@ For TC8 conformance, the split is simple:
   - Describes the specific behaviour under test.
   - References the relevant AUTOSAR PRS or TC8 specification section.
   - Is verified by one or more pytest functions.
-
-.. note:: **When to extend this document**
-
-   When new TC8 conformance tests are added (e.g., new OA specification
-   chapters or protocol areas like SOME/IP-TP), update the documents as
-   follows:
-
-   1. **The feature requirement stays unchanged** — it already covers
-      the overall TC8 protocol conformance goal.
-   2. **Add new component requirements** to this file for each testable
-      behaviour. Group them under a new heading (e.g.,
-      "Component Requirements — SOME/IP-TP").
-   3. **Add test case descriptions** in :doc:`test_specification`.
-   4. **Add OA-to-internal mapping rows** in :doc:`traceability`.
-   5. Each new pytest function must call
-      ``record_property("FullyVerifies", "<comp_req_id>")`` to close
-      the traceability chain.
-
-   A **new feature requirement** is only needed if the scope expands
-   beyond wire-level protocol conformance — for example, a separate
-   "TC8 Enhanced Testability" campaign would need its own ``feat_req``.
-
-Requirement Hierarchy Diagram
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-The diagram below shows how the three requirement levels, the test code,
-the external OA standard, and the documentation files relate to each other.
-
-.. uml::
-
-   @startuml
-   !theme plain
-
-   scale max 800 width
-   skinparam packageStyle rectangle
-   skinparam linetype ortho
-   skinparam nodesep 50
-   skinparam ranksep 50
-
-   package "S-CORE Requirement Hierarchy" {
-     rectangle "**Stakeholder Requirement**\n(stkh_req)" as STKH #b1ddf0 {
-       rectangle "stkh_req~__docgen_enabled~__example\n//High-level interoperability need//" as SReq
-     }
-     rectangle "**Feature Requirement**\n(feat_req)" as FEAT #fff2cc {
-       rectangle "feat_req~__tc8_conformance~__conformance\n//TC8 SOME/IP protocol conformance//" as FReq
-     }
-     rectangle "**Component Requirements**\n(comp_req)" as COMP #d5e8d4 {
-       rectangle "comp_req~__tc8_conformance~__*\n//One per testable protocol behaviour//" as CReq
-     }
-   }
-
-   package "Test Implementation" {
-     collections "**tests/tc8_conformance/*.py**\nPython test functions\n(pytest + raw SOME/IP)" as Tests #f5f5f5
-   }
-
-   package "External Standard" {
-     rectangle "**OA TC8 Spec**\nChapter 5 — SOME/IP\nSOMEIPSRV_*, SOMEIP_ETS_*" as OASpec #e0e0e0
-   }
-
-   ' --- Relationships ---
-
-   ' Requirement satisfaction hierarchy (vertical within hierarchy)
-   FReq -up-> SReq : <<satisfies>>
-   CReq -up-> FReq : <<satisfies>>
-
-   ' Test verification and external standard traceability
-   Tests -up-> CReq : <<verifies>>
-   Tests -right-> OASpec : <<traces to>>
-
-   @enduml
-
-The relationships work as follows:
-
-1. **Stakeholder → Feature** (``:satisfies:``):
-   The feature requirement satisfies the stakeholder need for SOME/IP
-   interoperability.
-
-2. **Feature → Component** (``:satisfies:``):
-   Each component requirement defines a specific, testable protocol
-   behaviour and links up to the single feature requirement.
-
-3. **Component → Test** (``record_property("FullyVerifies", ...)``):
-   Each pytest function creates a machine-readable link back to the
-   component requirement it verifies (emitted in JUnit XML).
-
-4. **Test → External Standard** (traceability matrix):
-   The :doc:`traceability` maps each internal test ID to the
-   corresponding OA TC8 specification test case, closing the chain
-   from external standard to verified implementation.  The
-   :doc:`test_specification` provides detailed test case descriptions
-   (purpose, stimuli, expected results) for each component requirement.
 
 Requirement Areas
 ^^^^^^^^^^^^^^^^^
@@ -247,7 +135,6 @@ Specification (AUTOSAR PRS_SOMEIP_SD).
    :status: valid
    :tags: tc8, conformance, service_discovery
    :satisfies: feat_req__tc8_conformance__conformance
-   :belongs_to: comp__someipd
    :safety: QM
    :security: NO
    :reqtype: Functional
@@ -266,7 +153,6 @@ Specification (AUTOSAR PRS_SOMEIP_SD).
    :status: valid
    :tags: tc8, conformance, service_discovery, timing
    :satisfies: feat_req__tc8_conformance__conformance
-   :belongs_to: comp__someipd
    :safety: QM
    :security: NO
    :reqtype: Functional
@@ -284,7 +170,6 @@ Specification (AUTOSAR PRS_SOMEIP_SD).
    :status: valid
    :tags: tc8, conformance, service_discovery
    :satisfies: feat_req__tc8_conformance__conformance
-   :belongs_to: comp__someipd
    :safety: QM
    :security: NO
    :reqtype: Functional
@@ -302,7 +187,6 @@ Specification (AUTOSAR PRS_SOMEIP_SD).
    :status: valid
    :tags: tc8, conformance, service_discovery, eventgroup
    :satisfies: feat_req__tc8_conformance__conformance
-   :belongs_to: comp__someipd
    :safety: QM
    :security: NO
    :reqtype: Functional
@@ -325,7 +209,6 @@ Specification (AUTOSAR PRS_SOMEIP_SD).
    :status: valid
    :tags: tc8, conformance, service_discovery, eventgroup, timing
    :satisfies: feat_req__tc8_conformance__conformance
-   :belongs_to: comp__someipd
    :safety: QM
    :security: NO
    :reqtype: Functional
@@ -340,7 +223,6 @@ Specification (AUTOSAR PRS_SOMEIP_SD).
    :status: valid
    :tags: tc8, conformance, service_discovery, timing
    :satisfies: feat_req__tc8_conformance__conformance
-   :belongs_to: comp__someipd
    :safety: QM
    :security: NO
    :reqtype: Functional
@@ -359,7 +241,6 @@ Specification (AUTOSAR PRS_SOMEIP_SD).
    :status: valid
    :tags: tc8, conformance, service_discovery
    :satisfies: feat_req__tc8_conformance__conformance
-   :belongs_to: comp__someipd
    :safety: QM
    :security: NO
    :reqtype: Functional
@@ -378,7 +259,6 @@ Specification (AUTOSAR PRS_SOMEIP_SD).
    :status: valid
    :tags: tc8, conformance, service_discovery, reboot
    :satisfies: feat_req__tc8_conformance__conformance
-   :belongs_to: comp__someipd
    :safety: QM
    :security: NO
    :reqtype: Functional
@@ -397,7 +277,6 @@ Specification (AUTOSAR PRS_SOMEIP_SD).
    :status: valid
    :tags: tc8, conformance, service_discovery, multicast
    :satisfies: feat_req__tc8_conformance__conformance
-   :belongs_to: comp__someipd
    :safety: QM
    :security: NO
    :reqtype: Functional
@@ -419,7 +298,6 @@ Component Requirements — SOME/IP Message Format
    :status: valid
    :tags: tc8, conformance, message_format
    :satisfies: feat_req__tc8_conformance__conformance
-   :belongs_to: comp__someipd
    :safety: QM
    :security: NO
    :reqtype: Functional
@@ -440,7 +318,6 @@ Component Requirements — SOME/IP Message Format
    :status: valid
    :tags: tc8, conformance, message_format, error_handling
    :satisfies: feat_req__tc8_conformance__conformance
-   :belongs_to: comp__someipd
    :safety: QM
    :security: NO
    :reqtype: Functional
@@ -461,7 +338,6 @@ Component Requirements — SOME/IP Message Format
    :status: valid
    :tags: tc8, conformance, message_format, robustness
    :satisfies: feat_req__tc8_conformance__conformance
-   :belongs_to: comp__someipd
    :safety: QM
    :security: NO
    :reqtype: Functional
@@ -484,7 +360,6 @@ Component Requirements — Event Notification
    :status: valid
    :tags: tc8, conformance, events, notification
    :satisfies: feat_req__tc8_conformance__conformance
-   :belongs_to: comp__someipd
    :safety: QM
    :security: NO
    :reqtype: Functional
@@ -507,7 +382,6 @@ Component Requirements — Field Conformance
    :status: valid
    :tags: tc8, conformance, fields, notification
    :satisfies: feat_req__tc8_conformance__conformance
-   :belongs_to: comp__someipd
    :safety: QM
    :security: NO
    :reqtype: Functional
@@ -525,7 +399,6 @@ Component Requirements — Field Conformance
    :status: valid
    :tags: tc8, conformance, fields, request_response
    :satisfies: feat_req__tc8_conformance__conformance
-   :belongs_to: comp__someipd
    :safety: QM
    :security: NO
    :reqtype: Functional
@@ -545,7 +418,6 @@ Component Requirements — Field Conformance
    :status: valid
    :tags: tc8, conformance, fields, notification
    :satisfies: feat_req__tc8_conformance__conformance
-   :belongs_to: comp__someipd
    :safety: QM
    :security: NO
    :reqtype: Functional
@@ -566,7 +438,6 @@ Component Requirements — TCP Transport Binding
    :status: valid
    :tags: tc8, conformance, tcp, transport, rpc
    :satisfies: feat_req__tc8_conformance__conformance
-   :belongs_to: comp__someipd
    :safety: QM
    :security: NO
    :reqtype: Functional
@@ -600,7 +471,6 @@ Component Requirements — Multi-service and Multi-instance
    :status: valid
    :tags: tc8, conformance, multi_service, routing
    :satisfies: feat_req__tc8_conformance__conformance
-   :belongs_to: comp__someipd
    :safety: QM
    :security: NO
    :reqtype: Functional
@@ -629,7 +499,6 @@ SOME/IP-SD messages sent by ``someipd``, corresponding to OA TC8 v3.0 §5.1.5.1
    :status: valid
    :tags: tc8, conformance, service_discovery, format
    :satisfies: feat_req__tc8_conformance__conformance
-   :belongs_to: comp__someipd
    :safety: QM
    :security: NO
    :reqtype: Functional
@@ -657,7 +526,6 @@ SOME/IP-SD messages sent by ``someipd``, corresponding to OA TC8 v3.0 §5.1.5.1
    :status: valid
    :tags: tc8, conformance, service_discovery, options
    :satisfies: feat_req__tc8_conformance__conformance
-   :belongs_to: comp__someipd
    :safety: QM
    :security: NO
    :reqtype: Functional
@@ -683,7 +551,6 @@ SOME/IP-SD messages sent by ``someipd``, corresponding to OA TC8 v3.0 §5.1.5.1
    :status: valid
    :tags: tc8, conformance, service_discovery, format
    :satisfies: feat_req__tc8_conformance__conformance
-   :belongs_to: comp__someipd
    :safety: QM
    :security: NO
    :reqtype: Functional
@@ -700,7 +567,6 @@ Component Requirements — SD Robustness
    :status: valid
    :tags: tc8, conformance, service_discovery, robustness
    :satisfies: feat_req__tc8_conformance__conformance
-   :belongs_to: comp__someipd
    :safety: QM
    :security: NO
    :reqtype: Functional
@@ -733,7 +599,6 @@ Component Requirements — UDP Transport Binding
    :status: valid
    :tags: tc8, conformance, udp, transport
    :satisfies: feat_req__tc8_conformance__conformance
-   :belongs_to: comp__someipd
    :safety: QM
    :security: NO
    :reqtype: Functional

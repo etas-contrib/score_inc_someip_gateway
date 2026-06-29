@@ -315,11 +315,11 @@ Multi-service and Multi-instance
      - Test Function(s)
    * - §5.1.5.7 — SOMEIPSRV_RPC_13
      - TC8-MULTI-001
-     - ``multi_service_routing``
+     - ``multi_service``
      - ``test_multi_service::TestMultiServiceInstanceRouting::test_rpc_13_multi_service_config_loads_and_primary_service_offered``
    * - §5.1.5.7 — SOMEIPSRV_RPC_14
      - TC8-MULTI-002
-     - ``multi_service_routing``
+     - ``multi_service``
      - | ``test_multi_service::TestMultiServiceInstanceRouting::test_rpc_14_service_a_advertises_configured_udp_port``
        | ``test_multi_service::TestMultiServiceInstanceRouting::test_rpc_14_no_unexpected_service_ids_in_offers``
 
@@ -1085,19 +1085,6 @@ Coverage Summary
    For the full OA TC8 v3.0 Chapter 5 scope analysis see
    `TC8 Specification Alignment Analysis`_ below.
 
-How to Update
--------------
-
-When adding a new TC8 test case:
-
-1. Read the OA specification Chapter 5 to identify the exact test case
-   section number and title.
-2. Add a row to the appropriate area table above with the OA reference,
-   internal TC8 ID, requirement, and test function.
-3. Ensure the test function calls ``record_property("FullyVerifies", ...)``
-   with the matching ``comp_req__tc8_conformance__<id>``.
-4. Update the Coverage Summary counts.
-
 TC8 Specification Alignment Analysis
 -------------------------------------
 
@@ -1396,155 +1383,6 @@ remaining two (``SOMEIP_ETS_089/164``) use ``resetInterface`` and
 ``suspendInterface`` control methods, which require the ETS application.
 
 *Status: 3 of 5 implemented; 2 blocked on ETS application.*
-
-Test Framework Suitability
-^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-.. rubric:: Framework Assessment per TC8 Group
-
-.. list-table::
-   :header-rows: 1
-   :widths: 28 8 24 40
-
-   * - TC8 Test Group
-     - Count
-     - Framework needed
-     - Current status
-   * - SOMEIPSRV Protocol (all)
-     - 93
-     - pytest
-     - ✅ **Complete** — all 93 tests written and passing.
-   * - ETS SD Protocol
-     - 74
-     - pytest
-     - ✅ **Complete** — all 60 wire-level tests written and passing.
-       14 tests blocked on ETS application (see `ETS Application Gap`_).
-   * - ETS Robustness
-     - 14
-     - pytest
-     - ✅ **Complete** — all 14 tests written and passing.
-   * - ETS Serialization / Echo
-     - 44
-     - ETS application + gatewayd + pytest
-     - **0 of 44 implemented.** Blocked — ETS application and Payload
-       Transformation in gatewayd do not exist yet.
-   * - ETS Client / Control
-     - 5
-     - 3 use pytest; 2 need ETS application
-     - **3 of 5 implemented** (ETS_081/082/084 in ``test_sd_client.py``).
-       2 tests (ETS_089/164) blocked on ETS application.
-
-**Framework recommendation:**
-
-For all tests, pytest is the test framework. Wire-level tests run entirely
-within the pytest process. Application-level tests extend ``conftest.py``
-with a subprocess fixture that starts the ETS application, ``gatewayd``,
-and ``someipd`` in order — the same ``subprocess.Popen`` pattern used for
-the standalone ``someipd`` fixture. Adopt S-CORE ITF if multi-node
-isolation or structured CI reporting becomes necessary.
-
-What is Needed to Reach 100% Coverage
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-The table below lists the remaining actions in priority order.
-
-.. list-table::
-   :header-rows: 1
-   :widths: 5 30 11 54
-
-   * - #
-     - Action
-     - Unlocks
-     - Details
-   * - 1
-     - ✅ DONE — Write missing wire-level tests
-     - 21 tests added
-     - All 21 missing wire-level tests have been implemented (21 new test
-       functions added in this milestone). SD_MESSAGE_12, RPC_15, RPC_16,
-       all ETS SD Protocol wire-level tests, and all ETS Robustness tests
-       are now written and passing.
-   * - 2
-     - Implement the ETS application (mw::com Skeleton)
-     - 49 tests
-     - Write the C++ service application in
-       ``tests/tc8_conformance/application/``. The directory structure and
-       README are already in place. The application must implement all echo
-       methods (``echoUINT8``, ``echoUINT8Array``, ``echoUTF8DYNAMIC``, and
-       ~40 others), event triggers, field accessors, and control methods
-       (``resetInterface``, ``suspendInterface``,
-       ``clientServiceActivate``).
-   * - 3
-     - Verify Payload Transformation in gatewayd
-     - 44 tests (same as action 2)
-     - Serialization echo tests pass only when gatewayd correctly
-       serializes and deserializes all TC8 data types through the full
-       pipeline. Verify each type: UINT8/INT8/FLOAT64, static and dynamic
-       arrays, UTF-8 and UTF-16 strings, unions, enums, bitfields, and
-       common data type combinations.
-   * - 4
-     - Add ETS process orchestration to conftest.py
-     - 49 tests (same as action 2)
-     - Add a pytest fixture that starts the ETS application, ``gatewayd``,
-       and ``someipd`` in order and tears them down after the test. A simple
-       ``subprocess.Popen`` fixture is sufficient. Adopt S-CORE ITF later
-       if multi-node isolation is needed.
-   * - 5
-     - Assess E2E protection support
-     - 2 tests
-     - ``SOMEIP_ETS_034`` (echoUINT8E2E) and ``SOMEIP_ETS_149``
-       (triggerEventUINT8E2E) require E2E middleware integration. Assess
-       whether mw::com and gatewayd support E2E protection and configure it
-       if needed.
-
-Transport Layer Tests — Status
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-The following ETS test cases involve transport layer scenarios.
-
-.. list-table::
-   :header-rows: 1
-   :widths: 20 38 27 15
-
-   * - Spec ID
-     - Title
-     - TCP Scenario
-     - Status
-   * - SOMEIP_ETS_035
-     - echoUINT8RELIABLE
-     - Request/response via TCP
-     - Blocked — needs ETS app
-   * - SOMEIP_ETS_037
-     - echoUINT8RELIABLE_client_closes_TCP_connection_automatically
-     - TCP lifecycle persistence
-     - Blocked — needs ETS app
-   * - SOMEIP_ETS_068
-     - Unaligned_SOMEIP_Messages_overTCP
-     - Multiple SOME/IP messages in one TCP packet
-     - ✅ **Implemented** — TC8-TCP-009 in ``test_someip_message_format.py``
-   * - SOMEIP_ETS_069
-     - Unaligned_SOMEIP_Messages_overUDP
-     - Multiple SOME/IP messages in one UDP datagram
-     - ✅ **Implemented** — TC8-UDP-001 in ``test_someip_message_format.py``
-   * - SOMEIP_ETS_086
-     - Eventgroup_EventsAndFieldsAll_2_TCP
-     - TCP eventgroup with initial field delivery
-     - Blocked — needs ETS app
-   * - SOMEIP_ETS_096
-     - SD_Check_TCP_Connection_before_SubscribeEventgroup
-     - TCP prerequisite for subscription
-     - Blocked — needs ETS app
-   * - SOMEIP_ETS_097
-     - SD_Client_restarts_tcp_connection
-     - TCP reconnection recovery
-     - Blocked — needs ETS app
-
-``SOMEIP_ETS_068`` and ``SOMEIP_ETS_069`` are the only transport layer tests
-that can be tested at the wire level (no application needed). Both are
-implemented. The TCP helper functions ``tcp_send_concatenated()`` and
-``tcp_receive_n_responses()`` live in ``helpers/tcp_helpers.py``; the UDP
-equivalents ``udp_send_concatenated()`` and ``udp_receive_responses()`` live
-in ``helpers/udp_helpers.py``. All remaining TCP tests require the ETS
-application and Payload Transformation in gatewayd.
 
 .. _known_stack_limitations:
 
