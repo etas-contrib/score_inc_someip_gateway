@@ -1007,83 +1007,14 @@ SOME/IP Message Protocol Compliance
 Coverage Summary
 ----------------
 
-.. list-table::
-   :header-rows: 1
-   :widths: 20 15 15 15
+All 189 internal TC8 test IDs are implemented and mapped to OA spec references.
+Some IDs are covered by multiple pytest functions (~215 total).
+Three tests are expected to fail against vsomeip 3.6.1 — see
+:ref:`known_stack_limitations`.
 
-   * - TC8 Area
-     - Total Test IDs
-     - Implemented
-     - OA Spec Mapped
-   * - Service Discovery
-     - 14
-     - 14
-     - 14
-   * - SD Format and Options Compliance
-     - 40
-     - 40
-     - 40
-   * - SD Entry Semantics
-     - 18
-     - 18
-     - 18
-   * - SD Lifecycle Advanced
-     - 25
-     - 25
-     - 25
-   * - SD Robustness
-     - 36
-     - 36
-     - 36
-   * - Message Format (existing)
-     - 8
-     - 8
-     - 8
-   * - SOME/IP Message Protocol Compliance
-     - 24
-     - 24
-     - 24
-   * - Event Notification
-     - 8
-     - 8
-     - 8
-   * - Field Conformance
-     - 4
-     - 4
-     - 4
-   * - TCP Transport Binding
-     - 9
-     - 9
-     - 9
-   * - UDP Transport Binding
-     - 1
-     - 1
-     - 1
-   * - Multi-service and Multi-instance
-     - 2
-     - 2
-     - 2
-   * - **Total**
-     - **189**
-     - **189**
-     - **189**
-
-.. note::
-
-   Some TC8 test IDs are implemented by multiple test functions to separate
-   independent assertions.  The 189 IDs above correspond to approximately
-   215 pytest functions in total.
-
-.. note::
-
-   Three tests are expected to **FAIL** against vsomeip 3.6.1 due to known
-   stack limitations.  See :ref:`known_stack_limitations`.
-
-.. note::
-
-   Coverage is reported against the subset of TC8 test cases implemented.
-   For the full OA TC8 v3.0 Chapter 5 scope analysis see
-   `TC8 Specification Alignment Analysis`_ below.
+For the full OA TC8 v3.0 Chapter 5 scope analysis (including blocked tests
+requiring the ETS application), see `TC8 Specification Alignment Analysis`_
+below.
 
 TC8 Specification Alignment Analysis
 -------------------------------------
@@ -1172,91 +1103,10 @@ checks the DUT's response. **No C++ application code or gatewayd is needed.**
 The table below uses these status labels:
 
 - **Complete** — every specification item in this category has a passing test.
-- **Near-complete** — one or two items do not yet have a test, but they can
-  be added using the existing framework. No new software is needed.
-- **Complete (loopback skip)** — all tests are written and pass on a
-  non-loopback interface. Tests that require vsomeip to include
-  ``IPv4MulticastOption`` in SD messages skip automatically on loopback.
 
-.. rubric:: SOMEIPSRV Coverage Mapping
-
-.. list-table::
-   :header-rows: 1
-   :widths: 24 7 8 17 44
-
-   * - TC8 Category (Section)
-     - Total
-     - Written
-     - Status
-     - Notes
-   * - SD Message Format (5.1.5.1)
-     - 27
-     - 27
-     - **Complete**
-     - All SD SOME/IP header fields (Client ID, Session ID, Protocol Version,
-       Interface Version, Message Type, Return Code, Reboot flag, Unicast
-       flag, Reserved) and all OfferService and SubscribeAck entry fields
-       (FORMAT_01 through FORMAT_28) have dedicated byte-level assertions in
-       ``test_sd_format_compliance.py``.
-   * - SD Options Array (5.1.5.2)
-     - 15
-     - 15
-     - **Complete** (7 skip in CI)
-     - IPv4 Endpoint Option (OPTIONS_01–07), IPv4 Multicast Option
-       (OPTIONS_08–14), and TCP Endpoint Option (OPTIONS_15) are all tested.
-       The 7 multicast sub-field tests (OPTIONS_08–14) skip on loopback
-       because vsomeip 3.6.1 does not include ``IPv4MulticastOption`` in
-       SubscribeEventgroupAck when bound to a loopback address.  They run
-       and pass on a non-loopback interface.
-   * - SD Message Entries (5.1.5.3)
-     - 17
-     - 17
-     - **Complete**
-     - Tested: FindService responses (SD_MESSAGE_01–06), OfferService raw
-       entry fields including entry Type byte and both option-run fields
-       (SD_MESSAGE_07–09), Subscribe request entry Type byte
-       (SD_MESSAGE_11), SubscribeAck entry (SD_MESSAGE_13), NAck conditions
-       (SD_MESSAGE_14–19), and Stop Subscribe raw entry format
-       (SD_MESSAGE_12). All items covered.
-   * - SD Communication Behavior (5.1.5.4)
-     - 4
-     - 4
-     - **Complete**
-     - Repetition phase doubling (SD_BEHAVIOR_01), Main Phase cyclic offers
-       (SD_BEHAVIOR_02), and FindService response timing (SD_BEHAVIOR_03/04
-       — wall-clock assertions checking the DUT responds within
-       ``request_response_delay * 1.5``) are all covered.
-       StopSubscribe behavior (SD_BEHAVIOR_06) is covered by TC8-SD-008.
-       SD_BEHAVIOR_05 (client reaction to StopOffer) does not apply: the DUT
-       is a server only and has no active client subscriptions to cancel.
-   * - Basic Service Identifiers (5.1.5.5)
-     - 3
-     - 3
-     - **Complete**
-     - Service ID (BASIC_01), Instance ID (BASIC_02), and event notification
-       method ID bit — bit 15 = 1 (BASIC_03) — are all verified. Note:
-       vsomeip 3.6.1 fails BASIC_03 (sends a RESPONSE to event-ID messages).
-       See :ref:`known_stack_limitations`.
-   * - On-Wire Format (5.1.5.6)
-     - 10
-     - 10
-     - **Complete**
-     - Protocol version, message type, request/response ID echo, interface
-       version, return codes, and error responses for unknown service or
-       method are all verified (ONWIRE_01–07/10–12) in
-       ``test_someip_message_format.py``.
-   * - Remote Procedure Call (5.1.5.7)
-     - 17
-     - 17
-     - **Complete**
-     - Tested: TCP request/response (RPC_01/02), Fire-and-Forget
-       (RPC_04/05), return code handling (RPC_06–10), field getter/setter
-       (RPC_03/11), multiple service instances (RPC_13/14), cyclic
-       notification rate (RPC_15), on-change-only notification (RPC_16),
-       TCP event and field notification (RPC_17), error header echo
-       (RPC_18/19/20). All items covered.
-
-**Summary: All 93 SOMEIPSRV items have passing tests.**
+All 93 SOMEIPSRV specification items have passing tests across the seven
+subsections (SD Message Format, SD Options, SD Message Entries, SD Communication
+Behavior, Basic Service Identifiers, On-Wire Format, Remote Procedure Call).
 
 ETS Tests Coverage
 ^^^^^^^^^^^^^^^^^^
@@ -1284,15 +1134,6 @@ All wire-level ETS SD tests that can run without the ETS C++ application
 are now implemented. The 60 implemented tests cover session ID behavior,
 FindService responses, subscribe edge cases, malformed SD entries and
 options, TTL expiry, reboot detection, and multicast/unicast interactions.
-
-Implemented examples:
-
-- ``SOMEIP_ETS_088`` — two subscribes with the same session ID
-- ``SOMEIP_ETS_091`` — session ID increments correctly
-- ``SOMEIP_ETS_092`` — TTL=0 stop-subscribe
-- ``SOMEIP_ETS_120`` — subscribe endpoint IP matches tester
-- ``SOMEIP_ETS_111–142`` — malformed SD entries and options (robustness)
-- ``SOMEIP_ETS_081/082/084`` — SD client stop-subscribe, reboot detection
 
 .. rubric:: ETS SD Protocol — Blocked Tests (14 items, require ETS application)
 
@@ -1322,16 +1163,6 @@ These tests send wrong protocol versions, wrong message types, wrong IDs,
 truncated messages, oversized messages, and unaligned packets.
 
 *Status: 14 of 14 implemented.*
-
-All implemented:
-
-- ``SOMEIP_ETS_068`` — unaligned SOME/IP messages over TCP (TC8-TCP-009 in
-  ``test_someip_message_format.py``)
-- ``SOMEIP_ETS_069`` — unaligned SOME/IP messages over UDP (TC8-UDP-001)
-- ``SOMEIP_ETS_074/075/076/077/078`` — wrong interface version, message
-  type, method ID, service ID, protocol version
-- ``SOMEIP_ETS_054/055`` — length field zero or less than 8 bytes
-- ``SOMEIP_ETS_004`` — burst of 10 sequential requests
 
 .. rubric:: Track B — Tests requiring an ETS application (49 items)
 
