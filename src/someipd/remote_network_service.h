@@ -18,6 +18,7 @@
 #include <vector>
 #include <vsomeip/vsomeip.hpp>
 
+#include "score/result/result.h"
 #include "score/socom/server_connector.hpp"
 #include "src/config/mw_someip_config_generated.h"
 
@@ -33,33 +34,20 @@ namespace score::someipd {
 ///          setup_vsomeip(), which must be called once vsomeip has reached ST_REGISTERED.
 class RemoteNetworkService {
    public:
-    /// \brief Constructs a RemoteNetworkService
-    /// \param service_instance_config Configuration for this service instance
-    /// \param service_type_config Configuration for the service type of this instance
-    /// \param vsomeip_app vsomeip application used to register message handlers and subscriptions
-    /// \param socom_runtime SOCom runtime used to create the server connector
-    RemoteNetworkService(
-        std::shared_ptr<const mw_someip_config::ServiceInstance> service_instance_config,
-        std::shared_ptr<const mw_someip_config::ServiceType> service_type_config,
-        std::shared_ptr<vsomeip::application> vsomeip_app,
-        socom::Runtime& socom_runtime);
-
-    /// \brief Registers vsomeip message handlers and subscribes to events for this service.
-    /// \details Must be called from within the vsomeip ST_REGISTERED state handler.
-    void setup_vsomeip();
-
-    /// \brief Creates a RemoteNetworkService and adds it to the instances vector
+    /// \brief Creates a RemoteNetworkService
     /// \param service_instance_config Configuration for the service instance to create
     /// \param service_type_config Configuration for the service type of the instance to create
     /// \param vsomeip_app vsomeip application used to register message handlers and subscriptions
     /// \param socom_runtime SOCom runtime used to create the server connector
-    /// \param instances Vector to which the created RemoteNetworkService is appended
-    static void Create(
+    /// \return Result containing the created instance on success, or an error on failure
+    static Result<std::unique_ptr<RemoteNetworkService>> Create(
         std::shared_ptr<const mw_someip_config::ServiceInstance> service_instance_config,
         std::shared_ptr<const mw_someip_config::ServiceType> service_type_config,
-        std::shared_ptr<vsomeip::application> vsomeip_app,
-        socom::Runtime& socom_runtime,
-        std::vector<std::unique_ptr<RemoteNetworkService>>& instances);
+        std::shared_ptr<vsomeip::application> vsomeip_app, socom::Runtime& socom_runtime);
+
+    /// \brief Registers vsomeip message handlers and subscribes to events for this service.
+    /// \details Must be called from within the vsomeip ST_REGISTERED state handler.
+    void setup_vsomeip();
 
     RemoteNetworkService(const RemoteNetworkService&) = delete;
     RemoteNetworkService& operator=(const RemoteNetworkService&) = delete;
@@ -67,6 +55,13 @@ class RemoteNetworkService {
     RemoteNetworkService& operator=(RemoteNetworkService&&) = delete;
 
    private:
+    /// \brief Private constructor
+    RemoteNetworkService(
+        std::shared_ptr<const mw_someip_config::ServiceInstance> service_instance_config,
+        std::shared_ptr<const mw_someip_config::ServiceType> service_type_config,
+        std::shared_ptr<vsomeip::application> vsomeip_app,
+        socom::Enabled_server_connector::Uptr server_connector);
+
     std::shared_ptr<const mw_someip_config::ServiceInstance> service_instance_config_;
     std::shared_ptr<const mw_someip_config::ServiceType> service_type_config_;
     std::shared_ptr<vsomeip::application> vsomeip_app_;

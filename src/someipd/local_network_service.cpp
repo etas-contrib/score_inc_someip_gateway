@@ -26,30 +26,42 @@ namespace score::someipd {
 LocalNetworkService::LocalNetworkService(
     std::shared_ptr<const mw_someip_config::ServiceInstance> service_instance_config,
     std::shared_ptr<const mw_someip_config::ServiceType> service_type_config,
-    std::shared_ptr<vsomeip::application> vsomeip_app, socom::Runtime& socom_runtime)
+    std::shared_ptr<vsomeip::application> vsomeip_app,
+    socom::Client_connector::Uptr client_connector)
     : service_instance_config_(std::move(service_instance_config)),
       service_type_config_(std::move(service_type_config)),
-      vsomeip_app_(std::move(vsomeip_app)) {
+      vsomeip_app_(std::move(vsomeip_app)),
+      client_connector_(std::move(client_connector)) {}
+
+Result<std::unique_ptr<LocalNetworkService>> LocalNetworkService::Create(
+    std::shared_ptr<const mw_someip_config::ServiceInstance> service_instance_config,
+    std::shared_ptr<const mw_someip_config::ServiceType> service_type_config,
+    std::shared_ptr<vsomeip::application> vsomeip_app, socom::Runtime& socom_runtime) {
+    // Create instance first with null connector - needed because callbacks capture the instance
+    // pointer. Callbacks are not invoked until after make_client_connector returns (initial state
+    // is always not_available), so this is safe.
+    auto instance = std::unique_ptr<LocalNetworkService>(new LocalNetworkService(
+        service_instance_config, service_type_config, std::move(vsomeip_app), nullptr));
+
     socom::Service_interface_identifier const iface{
-        service_type_config_->service_type_name()->string_view(),
-        {service_type_config_->service_version_major(),
-         static_cast<uint16_t>(service_type_config_->service_version_minor())}};
+        service_type_config->service_type_name()->string_view(),
+        {service_type_config->service_version_major(),
+         static_cast<uint16_t>(service_type_config->service_version_minor())}};
 
     // TODO: handle multiple instances. For now just expect one instance per service.
-    socom::Service_instance const inst{service_type_config_->service_type_name()->string_view()};
+    socom::Service_instance const inst{service_type_config->service_type_name()->string_view()};
 
     socom::Service_interface_definition const client_connector_config{
         iface, socom::to_num_of_methods(0),
-        socom::to_num_of_events(service_type_config_->events()->size())};
+        socom::to_num_of_events(service_type_config->events()->size())};
 
-    // Callbacks capture `this`. on_service_state_change fires only after make_client_connector
-    // returns (initial state is always not_available), so client_connector_ is set by then.
     auto connector_result = socom_runtime.make_client_connector(
         client_connector_config, inst,
         {
             .on_service_state_change =
-                [this](socom::Client_connector const&, socom::Service_state state,
-                       socom::Server_service_interface_definition const&) {
+                [instance_ptr = instance.get()](socom::Client_connector const&,
+                                                socom::Service_state state,
+                                                socom::Server_service_interface_definition const&) {
                     std::cout << "[someipd] LocalNetworkService - on_service_state_change called"
                               << std::endl;
                     if (state != socom::Service_state::available) {
@@ -57,24 +69,25 @@ LocalNetworkService::LocalNetworkService(
                     }
                     // Subscribe to all events
                     socom::Event_id socom_event_id{0};
-                    for (auto event : *service_type_config_->events()) {
+                    for (auto event : *instance_ptr->service_type_config_->events()) {
                         std::cout << "[someipd] LocalNetworkService - Subscribing to event "
                                   << event->event_name()->string_view() << " (socom_id "
                                   << socom_event_id << ") for service "
-                                  << service_type_config_->service_type_name()->string_view()
+                                  << instance_ptr->service_type_config_->service_type_name()
+                                         ->string_view()
                                   << std::endl;
-                        (void)client_connector_->subscribe_event(socom_event_id,
-                                                                 socom::Event_mode::update);
+                        (void)instance_ptr->client_connector_->subscribe_event(
+                            socom_event_id, socom::Event_mode::update);
                         ++socom_event_id;
                     }
                 },
             .on_event_update =
-                [this](socom::Client_connector const&, socom::Event_id event_id,
-                       socom::Payload payload) {
+                [instance_ptr = instance.get()](socom::Client_connector const&,
+                                                socom::Event_id event_id, socom::Payload payload) {
                     std::cout << "[someipd] LocalNetworkService - on_event_update for event_id "
                               << event_id << " with payload size " << payload.data().size()
                               << std::endl;
-                    forward_to_vsomeip(event_id, std::move(payload));
+                    instance_ptr->forward_to_vsomeip(event_id, std::move(payload));
                 },
             .on_event_requested_update =
                 [](socom::Client_connector const&, socom::Event_id, socom::Payload) {
@@ -93,10 +106,11 @@ LocalNetworkService::LocalNetworkService(
     if (!connector_result.has_value()) {
         score::mw::log::LogError()
             << "[someipd] Failed to create client connector for '"
-            << service_type_config_->service_type_name()->string_view() << "'";
-        return;
+            << service_type_config->service_type_name()->string_view() << "'";
+        return MakeUnexpected(socom::Error::runtime_error_request_rejected);
     }
-    client_connector_ = std::move(connector_result).value();
+    instance->client_connector_ = std::move(connector_result).value();
+    return instance;
 }
 
 void LocalNetworkService::forward_to_vsomeip(socom::Event_id event_id, socom::Payload payload) {
@@ -125,22 +139,6 @@ void LocalNetworkService::forward_to_vsomeip(socom::Event_id event_id, socom::Pa
     std::cout << "[someipd] Forwarded SOCom event " << event_index << " (vsomeip event_id=0x"
               << std::hex << event_config->event_id() << std::dec
               << ") to SOME/IP: event_data=" << event_data.size() << "B\n";
-}
-
-void LocalNetworkService::Create(
-    std::shared_ptr<const mw_someip_config::ServiceInstance> service_instance_config,
-    std::shared_ptr<const mw_someip_config::ServiceType> service_type_config,
-    std::shared_ptr<vsomeip::application> vsomeip_app, socom::Runtime& socom_runtime,
-    std::vector<std::unique_ptr<LocalNetworkService>>& instances) {
-    if (service_instance_config == nullptr) {
-        score::mw::log::LogError() << "[someipd] ERROR: Service instance config is nullptr!";
-        return;
-    }
-    instances.push_back(std::make_unique<LocalNetworkService>(
-        service_instance_config, service_type_config, vsomeip_app, socom_runtime));
-    std::cout << "[someipd] LocalNetworkService created for service 0x" << std::hex
-              << service_type_config->service_id() << " instance 0x"
-              << service_instance_config->instance_id() << std::dec << "\n";
 }
 
 }  // namespace score::someipd

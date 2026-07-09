@@ -28,20 +28,27 @@ namespace score::someipd {
 RemoteNetworkService::RemoteNetworkService(
     std::shared_ptr<const mw_someip_config::ServiceInstance> service_instance_config,
     std::shared_ptr<const mw_someip_config::ServiceType> service_type_config,
-    std::shared_ptr<vsomeip::application> vsomeip_app, socom::Runtime& socom_runtime)
+    std::shared_ptr<vsomeip::application> vsomeip_app,
+    socom::Enabled_server_connector::Uptr server_connector)
     : service_instance_config_(std::move(service_instance_config)),
       service_type_config_(std::move(service_type_config)),
-      vsomeip_app_(std::move(vsomeip_app)) {
-    socom::Service_interface_identifier const iface{
-        service_type_config_->service_type_name()->string_view(),
-        {service_type_config_->service_version_major(),
-         static_cast<uint16_t>(service_type_config_->service_version_minor())}};
+      vsomeip_app_(std::move(vsomeip_app)),
+      server_connector_(std::move(server_connector)) {}
 
-    socom::Service_instance const inst{service_type_config_->service_type_name()->string_view()};
+Result<std::unique_ptr<RemoteNetworkService>> RemoteNetworkService::Create(
+    std::shared_ptr<const mw_someip_config::ServiceInstance> service_instance_config,
+    std::shared_ptr<const mw_someip_config::ServiceType> service_type_config,
+    std::shared_ptr<vsomeip::application> vsomeip_app, socom::Runtime& socom_runtime) {
+    socom::Service_interface_identifier const iface{
+        service_type_config->service_type_name()->string_view(),
+        {service_type_config->service_version_major(),
+         static_cast<uint16_t>(service_type_config->service_version_minor())}};
+
+    socom::Service_instance const inst{service_type_config->service_type_name()->string_view()};
 
     socom::Server_service_interface_definition const server_config{
         iface, socom::to_num_of_methods(0),
-        socom::to_num_of_events(service_type_config_->events()->size())};
+        socom::to_num_of_events(service_type_config->events()->size())};
 
     auto disabled = socom_runtime.make_server_connector(
         server_config, inst,
@@ -62,10 +69,15 @@ RemoteNetworkService::RemoteNetworkService(
     if (!disabled.has_value()) {
         score::mw::log::LogError()
             << "[someipd] Failed to create server connector for '"
-            << service_type_config_->service_type_name()->string_view() << "'";
-        return;
+            << service_type_config->service_type_name()->string_view() << "'";
+        return MakeUnexpected(socom::Error::runtime_error_request_rejected);
     }
-    server_connector_ = socom::Disabled_server_connector::enable(std::move(disabled).value());
+    auto server_connector = socom::Disabled_server_connector::enable(std::move(disabled).value());
+
+    auto instance = std::unique_ptr<RemoteNetworkService>(
+        new RemoteNetworkService(std::move(service_instance_config), std::move(service_type_config),
+                                 std::move(vsomeip_app), std::move(server_connector)));
+    return instance;
 }
 
 void RemoteNetworkService::setup_vsomeip() {
@@ -149,22 +161,6 @@ void RemoteNetworkService::setup_vsomeip() {
         vsomeip_app_->request_event(service_id, instance_id, vsomeip_event_id, groups);
         vsomeip_app_->subscribe(service_id, instance_id, vsomeip_event_id);
     }
-}
-
-void RemoteNetworkService::Create(
-    std::shared_ptr<const mw_someip_config::ServiceInstance> service_instance_config,
-    std::shared_ptr<const mw_someip_config::ServiceType> service_type_config,
-    std::shared_ptr<vsomeip::application> vsomeip_app, socom::Runtime& socom_runtime,
-    std::vector<std::unique_ptr<RemoteNetworkService>>& instances) {
-    if (service_instance_config == nullptr) {
-        score::mw::log::LogError() << "[someipd] ERROR: Service instance config is nullptr!";
-        return;
-    }
-    instances.push_back(std::make_unique<RemoteNetworkService>(
-        service_instance_config, service_type_config, vsomeip_app, socom_runtime));
-    std::cout << "[someipd] RemoteNetworkService created for service 0x" << std::hex
-              << service_type_config->service_id() << " instance 0x"
-              << service_instance_config->instance_id() << std::dec << "\n";
 }
 
 }  // namespace score::someipd

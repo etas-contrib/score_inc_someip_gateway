@@ -182,12 +182,19 @@ int main(int argc, char* argv[]) {
                       << " (service_id=0x" << std::hex << service_type_config->service_id()
                       << std::dec << ", instance_id=0x" << std::hex
                       << service_instance_config->instance_id() << std::dec << ")" << std::endl;
-            LocalNetworkService::Create(
+            auto create_result = LocalNetworkService::Create(
                 std::shared_ptr<const score::mw_someip_config::ServiceInstance>(
                     config, service_instance_config),
                 std::shared_ptr<const score::mw_someip_config::ServiceType>(config,
                                                                             service_type_config),
-                routing.value().get_application(), *socom_runtime, local_network_services);
+                routing.value().get_application(), *socom_runtime);
+            if (!create_result.has_value()) {
+                score::mw::log::LogError()
+                    << "[someipd] Failed to create LocalNetworkService for "
+                    << service_type_config->service_type_name()->string_view();
+                continue;
+            }
+            local_network_services.push_back(std::move(create_result).value());
         }
     }
 
@@ -206,12 +213,19 @@ int main(int argc, char* argv[]) {
                       << " (service_id=0x" << std::hex << service_type_config->service_id()
                       << std::dec << ", instance_id=0x" << std::hex
                       << service_instance_config->instance_id() << std::dec << ")" << std::endl;
-            RemoteNetworkService::Create(
+            auto create_result = RemoteNetworkService::Create(
                 std::shared_ptr<const score::mw_someip_config::ServiceInstance>(
                     config, service_instance_config),
                 std::shared_ptr<const score::mw_someip_config::ServiceType>(config,
                                                                             service_type_config),
-                routing.value().get_application(), *socom_runtime, remote_network_services);
+                routing.value().get_application(), *socom_runtime);
+            if (!create_result.has_value()) {
+                score::mw::log::LogError()
+                    << "[someipd] Failed to create RemoteNetworkService for "
+                    << service_type_config->service_type_name()->string_view();
+                continue;
+            }
+            remote_network_services.push_back(std::move(create_result).value());
         }
     }
 
