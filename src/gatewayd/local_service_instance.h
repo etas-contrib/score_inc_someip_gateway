@@ -40,15 +40,16 @@ namespace score::someip_gateway::gatewayd {
 ///          the someipd daemon, ultimately making the local service accessible to remote ECUs.
 class LocalServiceInstance {
    public:
-    /// \brief Constructs a LocalServiceInstance
+    /// \brief Creates a LocalServiceInstance
     /// \param service_instance_config Configuration for this service instance
     /// \param service_type_config Configuration for the service type of this instance
     /// \param ipc_proxy Generic proxy for IPC communication with the local service
     /// \param socom_runtime SOCom runtime used to create the server connector
-    /// \details This constructor initializes a local service instance with the necessary
+    /// \return Result containing the created instance on success, or an error on failure
+    /// \details This factory method creates a local service instance with the necessary
     ///          components to forward local service messages to the someipd daemon, which
     ///          then handles the SOME/IP network communication with remote ECUs.
-    LocalServiceInstance(
+    static Result<std::unique_ptr<LocalServiceInstance>> Create(
         std::shared_ptr<const mw_someip_config::ServiceInstance> service_instance_config,
         std::shared_ptr<const mw_someip_config::ServiceType> service_type_config,
         score::mw::com::GenericProxy&& ipc_proxy, socom::Runtime& socom_runtime);
@@ -76,6 +77,13 @@ class LocalServiceInstance {
     LocalServiceInstance& operator=(LocalServiceInstance&&) = delete;
 
    private:
+    /// \brief Private constructor
+    LocalServiceInstance(
+        std::shared_ptr<const mw_someip_config::ServiceInstance> service_instance_config,
+        std::shared_ptr<const mw_someip_config::ServiceType> service_type_config,
+        score::mw::com::GenericProxy&& ipc_proxy,
+        score::socom::Enabled_server_connector::Uptr server_connector);
+
     /// Configuration for this service instance
     std::shared_ptr<const mw_someip_config::ServiceInstance> service_instance_config_;
     /// Configuration for the service type of this instance

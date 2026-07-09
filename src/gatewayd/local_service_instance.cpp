@@ -33,23 +33,28 @@ namespace score::someip_gateway::gatewayd {
 LocalServiceInstance::LocalServiceInstance(
     std::shared_ptr<const mw_someip_config::ServiceInstance> service_instance_config,
     std::shared_ptr<const mw_someip_config::ServiceType> service_type_config,
-    GenericProxy&& ipc_proxy, socom::Runtime& socom_runtime)
+    GenericProxy&& ipc_proxy, socom::Enabled_server_connector::Uptr server_connector)
     : service_instance_config_(std::move(service_instance_config)),
       service_type_config_(std::move(service_type_config)),
       ipc_proxy_(std::move(ipc_proxy)),
-      server_connector_(nullptr) {
+      server_connector_(std::move(server_connector)) {}
+
+Result<std::unique_ptr<LocalServiceInstance>> LocalServiceInstance::Create(
+    std::shared_ptr<const mw_someip_config::ServiceInstance> service_instance_config,
+    std::shared_ptr<const mw_someip_config::ServiceType> service_type_config,
+    GenericProxy&& ipc_proxy, socom::Runtime& socom_runtime) {
     socom::Service_interface_identifier const iface{
-        service_type_config_->service_type_name()->string_view(),
-        {service_type_config_->service_version_major(),
-         static_cast<uint16_t>(service_type_config_->service_version_minor())}};
+        service_type_config->service_type_name()->string_view(),
+        {service_type_config->service_version_major(),
+         static_cast<uint16_t>(service_type_config->service_version_minor())}};
 
     // TODO: Handle multiple instances. Needs to be converted from integer ID to string.
     // For initial impl, just use service name again.
-    socom::Service_instance const inst{service_type_config_->service_type_name()->string_view()};
+    socom::Service_instance const inst{service_type_config->service_type_name()->string_view()};
 
     socom::Server_service_interface_definition const server_config{
         iface, socom::to_num_of_methods(0),
-        socom::to_num_of_events(service_type_config_->events()->size())};
+        socom::to_num_of_events(service_type_config->events()->size())};
 
     auto disabled_server_connector = socom_runtime.make_server_connector(
         server_config, inst,
@@ -63,26 +68,30 @@ LocalServiceInstance::LocalServiceInstance(
             .on_method_call_payload_allocate =
                 [](socom::Enabled_server_connector&,
                    socom::Method_id) -> score::Result<socom::Writable_payload> {
-                return MakeUnexpected(socom::Error::logic_error_id_out_of_range);
+                return MakeUnexpected(socom::Error::runtime_error_request_rejected);
             },
         });
 
     if (!disabled_server_connector.has_value()) {
         score::mw::log::LogError()
             << "[gatewayd] Failed to create server connector for '"
-            << service_type_config_->service_type_name()->string_view() << "'";
-        return;
+            << service_type_config->service_type_name()->string_view() << "'";
+        return MakeUnexpected(socom::Error::runtime_error_request_rejected);
     }
     std::cout << "[gatewayd] LocalServiceInstance - Enabled server_connector for "
-              << service_type_config_->service_type_name()->string_view() << std::endl;
-    server_connector_ =
+              << service_type_config->service_type_name()->string_view() << std::endl;
+    auto server_connector =
         socom::Disabled_server_connector::enable(std::move(disabled_server_connector).value());
 
-    // Set up IPC event handlers
-    auto events = ipc_proxy_.GetEvents();
+    // Create the instance
+    auto instance = std::unique_ptr<LocalServiceInstance>(
+        new LocalServiceInstance(std::move(service_instance_config), std::move(service_type_config),
+                                 std::move(ipc_proxy), std::move(server_connector)));
 
+    // Set up IPC event handlers (must be done after instance creation since handlers capture this)
+    auto events = instance->ipc_proxy_.GetEvents();
     socom::Event_id socom_event_id{0U};
-    for (auto event_config : *service_type_config_->events()) {
+    for (auto event_config : *instance->service_type_config_->events()) {
         auto result = events.find(event_config->event_name()->string_view());
         if (result == events.cend()) {
             score::mw::log::LogWarn()
@@ -93,7 +102,7 @@ LocalServiceInstance::LocalServiceInstance(
         }
         auto& ipc_event = result->second;
 
-        auto service_type_name = service_type_config_->service_type_name()->string_view();
+        auto service_type_name = instance->service_type_config_->service_type_name()->string_view();
         auto event_name = event_config->event_name()->string_view();
         const score_com_serializer* serializer = nullptr;
         auto get_result =
@@ -103,21 +112,22 @@ LocalServiceInstance::LocalServiceInstance(
         if (get_result != score_com_serializer_result_ok) {
             score::mw::log::LogError() << "[gatewayd] Failed to get serializer for "
                                        << service_type_name << "::" << event_name;
+            ++socom_event_id;
             continue;
         }
         auto& event_context =
-            event_contexts_
+            instance->event_contexts_
                 .emplace(event_name, EventContext{event_config, serializer, socom_event_id})
                 .first->second;
 
-        ipc_event.SetReceiveHandler([this, &ipc_event, &event_context]() {
+        ipc_event.SetReceiveHandler([instance_ptr = instance.get(), &ipc_event, &event_context]() {
             ipc_event.GetNewSamples(
-                [&](SamplePtr<void> sample) {
+                [instance_ptr, &event_context](SamplePtr<void> sample) {
                     std::cout << "[gatewayd] LocalServiceInstance - Calling GetNewSamples()"
                               << std::endl;
 
-                    auto maybe_payload =
-                        server_connector_->allocate_event_payload(event_context.socom_event_id);
+                    auto maybe_payload = instance_ptr->server_connector_->allocate_event_payload(
+                        event_context.socom_event_id);
                     if (!maybe_payload.has_value()) {
                         std::cout << "[gatewayd] LocalServiceInstance - Failed to allocate event "
                                      "payload for event "
@@ -134,7 +144,7 @@ LocalServiceInstance::LocalServiceInstance(
                     // TODO: Design decision: the gateway needs to generate the SOME/IP message
                     // including the header in order to have the E2E protection in the ASIL
                     // context.
-                    std::uint16_t service_id = service_type_config_->service_id();
+                    std::uint16_t service_id = instance_ptr->service_type_config_->service_id();
                     payload.wdata()[pos++] = static_cast<std::byte>(service_id >> 8);
                     payload.wdata()[pos++] = static_cast<std::byte>(service_id & 0xFF);
 
@@ -157,7 +167,8 @@ LocalServiceInstance::LocalServiceInstance(
                     std::uint8_t protocol_version = 1;
                     payload.wdata()[pos++] = static_cast<std::byte>(protocol_version);
 
-                    std::uint8_t interface_version = service_type_config_->service_version_major();
+                    std::uint8_t interface_version =
+                        instance_ptr->service_type_config_->service_version_major();
                     payload.wdata()[pos++] = static_cast<std::byte>(interface_version);
 
                     std::uint8_t message_type = 0x02;  // NOTIFICATION
@@ -181,8 +192,8 @@ LocalServiceInstance::LocalServiceInstance(
                     // Shrink the payload to the actual written size (header + serialized data)
                     payload.shrink(pos);
 
-                    server_connector_->update_event(event_context.socom_event_id,
-                                                    std::move(payload));
+                    instance_ptr->server_connector_->update_event(event_context.socom_event_id,
+                                                                  std::move(payload));
                 },
                 someip::kMaxSampleCount);
         });
@@ -190,6 +201,8 @@ LocalServiceInstance::LocalServiceInstance(
         ipc_event.Subscribe(someip::kMaxSampleCount);
         ++socom_event_id;
     }
+
+    return instance;
 }
 
 namespace {
@@ -244,10 +257,18 @@ Result<mw::com::FindServiceHandle> LocalServiceInstance::CreateAsyncLocalService
                 return;
             }
 
+            auto create_result = LocalServiceInstance::Create(instance_config, service_config,
+                                                              std::move(proxy_result).value(),
+                                                              *context->socom_runtime);
+            if (!create_result.has_value()) {
+                score::mw::log::LogError()
+                    << "[gatewayd] Failed to create LocalServiceInstance for '"
+                    << instance_config->instance_specifier()->string_view() << "'";
+                return;
+            }
+
             // TODO: Add mutex if callbacks can run concurrently or use futures
-            context->instances.push_back(std::make_unique<LocalServiceInstance>(
-                instance_config, service_config, std::move(proxy_result).value(),
-                *context->socom_runtime));
+            context->instances.push_back(std::move(create_result).value());
 
             std::cout << "[gatewayd] LocalServiceInstance created for instance specifier: "
                       << instance_config->instance_specifier()->string_view() << std::endl;

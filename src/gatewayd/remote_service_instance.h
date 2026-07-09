@@ -40,15 +40,16 @@ namespace score::someip_gateway::gatewayd {
 ///          remote services accessible to applications on this ECU.
 class RemoteServiceInstance {
    public:
-    /// \brief Constructs a RemoteServiceInstance
+    /// \brief Creates a RemoteServiceInstance
     /// \param service_instance_config Configuration for this service instance
     /// \param service_type_config Configuration for the service type of this instance
     /// \param ipc_skeleton IPC skeleton for forwarding events to local consumer applications
     /// \param socom_runtime SOCom runtime used to create the client connector
-    /// \details This constructor initializes a remote service instance with the necessary
+    /// \return Result containing the created instance on success, or an error on failure
+    /// \details This factory method creates a remote service instance with the necessary
     ///          components to receive messages from the someipd daemon and forward them to
     ///          local applications via IPC.
-    RemoteServiceInstance(
+    static Result<std::unique_ptr<RemoteServiceInstance>> Create(
         std::shared_ptr<const mw_someip_config::ServiceInstance> service_instance_config,
         std::shared_ptr<const mw_someip_config::ServiceType> service_type_config,
         score::mw::com::GenericSkeleton&& ipc_skeleton, socom::Runtime& socom_runtime);
@@ -76,6 +77,20 @@ class RemoteServiceInstance {
     RemoteServiceInstance& operator=(RemoteServiceInstance&&) = delete;
 
    private:
+    struct EventContext {
+        const mw_someip_config::Event* config;
+        const ::score_com_serializer* serializer;
+        score::mw::com::GenericSkeletonEvent* ipc_event;
+    };
+
+    /// \brief Private constructor
+    RemoteServiceInstance(
+        std::shared_ptr<const mw_someip_config::ServiceInstance> service_instance_config,
+        std::shared_ptr<const mw_someip_config::ServiceType> service_type_config,
+        score::mw::com::GenericSkeleton&& ipc_skeleton,
+        socom::Client_connector::Uptr client_connector,
+        std::unordered_map<std::uint16_t, EventContext> event_contexts);
+
     void forward_event(socom::Event_id event_id, socom::Payload payload);
 
     /// Configuration for this service instance
@@ -89,11 +104,6 @@ class RemoteServiceInstance {
     /// or service_type_config_ are gone.
     socom::Client_connector::Uptr client_connector_;
 
-    struct EventContext {
-        const mw_someip_config::Event* config;
-        const ::score_com_serializer* serializer;
-        score::mw::com::GenericSkeletonEvent* ipc_event;
-    };
     std::unordered_map<std::uint16_t, EventContext> event_contexts_;
 };
 
