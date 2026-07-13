@@ -25,7 +25,10 @@ filegroup(
     name = "all_files",
     srcs = glob(
         ["**"],
-        exclude = ["**/__pycache__/**", "**/*.pyc"],
+        exclude = [
+            "**/__pycache__/**",
+            "**/*.pyc",
+        ],
     ),
     visibility = ["//visibility:public"],
 )

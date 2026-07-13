@@ -16,16 +16,19 @@ Integration Tests
 """
 
 load("@rules_pkg//pkg:mappings.bzl", "pkg_attributes", "pkg_files")
+load("//quality/integration_testing:integration_testing.bzl", "integration_test")
 
 filegroup(
     name = "all_files",
     srcs = glob(
         ["**"],
-        exclude = ["**/__pycache__/**", "**/*.pyc"],
+        exclude = [
+            "**/__pycache__/**",
+            "**/*.pyc",
+        ],
     ),
     visibility = ["//visibility:public"],
 )
-load("//quality/integration_testing:integration_testing.bzl", "integration_test")
 
 pkg_files(
     name = "vsomeip-runtime-pkg",
