@@ -17,6 +17,15 @@ load("@rules_python//python:defs.bzl", "py_library")
 load("//bazel/tools:json_schema_validator.bzl", "validate_json_schema_test")
 load("//quality/integration_testing:integration_testing.bzl", "integration_test")
 
+filegroup(
+    name = "all_files",
+    srcs = glob(
+        ["**"],
+        exclude = ["**/__pycache__/**", "**/*.pyc"],
+    ),
+    visibility = ["//visibility:public"],
+)
+
 # ---------------------------------------------------------------------------
 # ITF (QEMU) target infrastructure
 # ---------------------------------------------------------------------------

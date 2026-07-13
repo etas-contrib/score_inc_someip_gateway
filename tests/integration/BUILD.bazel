@@ -17,6 +17,15 @@ Integration Tests
 
 load("@score_tooling//:defs.bzl", "score_py_pytest")
 
+filegroup(
+    name = "all_files",
+    srcs = glob(
+        ["**"],
+        exclude = ["**/__pycache__/**", "**/*.pyc"],
+    ),
+    visibility = ["//visibility:public"],
+)
+
 score_py_pytest(
     name = "integration",
     size = "medium",

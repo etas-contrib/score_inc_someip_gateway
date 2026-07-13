@@ -128,12 +128,6 @@ def test_tcpdump_with_long_running_ping_from_target(target):
 def test_killing_tcpdump(target):
     with tcpdump_capture("icmp", packet_count=500) as tcpdump_process:
         assert tcpdump_process.poll() is None, get_output(tcpdump_process)
-        # killing tcpdump via exiting the with statement seems to work
-        # What does not work is killing it via using any of these:
-        # tcpdump_process.terminate()
-        # tcpdump_process.kill()
-        # subprocess.run(["pkill", "tcpdump"], check=True)
-        # This raises an permission exception.
 
     tcpdump_running, ps_aux_text = is_tcpdump_running()
     assert not tcpdump_running, ps_aux_text

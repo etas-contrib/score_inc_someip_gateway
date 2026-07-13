@@ -15,7 +15,6 @@
 
 import io
 import os
-import pwd
 import signal
 import subprocess
 import time
@@ -105,12 +104,39 @@ def stop_capture(
     return False
 
 
+class CaptureProcess:
+    """Context manager wrapper around a tcpdump Popen.
+
+    On context exit, sends SIGINT to flush the pcap cleanly, then falls back
+    to SIGKILL if the process does not terminate within the grace period.
+    Direct attribute access (poll, kill, wait, returncode, …) is delegated to
+    the wrapped Popen so callers that store the object directly continue to work.
+    """
+
+    def __init__(self, proc: subprocess.Popen[bytes]) -> None:
+        self._proc = proc
+
+    def __enter__(self) -> subprocess.Popen[bytes]:
+        return self._proc
+
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc: BaseException | None,
+        tb: Any,
+    ) -> None:
+        stop_capture(self._proc)
+
+    def __getattr__(self, name: str) -> Any:  # noqa: ANN401
+        return getattr(self._proc, name)
+
+
 def tcpdump_capture(
     filter_expression: str,
     packet_count: int | None = None,
     output_file: str | None = None,
-) -> subprocess.Popen[bytes]:
-    """Start tcpdump on the host and return the Popen object.
+) -> CaptureProcess:
+    """Start tcpdump on the host and return a CaptureProcess context manager.
 
     Args:
         filter_expression: BPF filter string.
@@ -120,14 +146,16 @@ def tcpdump_capture(
     Raises:
         RuntimeError: tcpdump exited immediately (missing binary or CAP_NET_RAW).
     """
-    tcpdump_user = pwd.getpwuid(os.getuid()).pw_name
     args = [
         "/usr/bin/tcpdump",
         "-n",
         "-i",
         "any",
-        "-Z",
-        tcpdump_user,
+        # No -Z: we run as the current user throughout. Passing -Z to "drop"
+        # to the same user we already are is tautological, triggers side effects
+        # (capability stripping, file-open after privilege change) that cause
+        # Permission denied on the pcap output file in some sandbox environments,
+        # and prevents the parent process from signalling the child (EPERM).
     ]
     if output_file is not None:
         args.extend(
@@ -157,4 +185,4 @@ def tcpdump_capture(
             f"CAP_NET_RAW capability. stderr: {stderr_text}"
         )
 
-    return proc
+    return CaptureProcess(proc)

@@ -24,7 +24,12 @@ copyright_checker(
     name = "copyright",
     srcs = [
         "src",
-        "tests",
+        "//tests/benchmarks:all_files",
+        "//tests/common:all_files",
+        "//tests/integration:all_files",
+        "//tests/integration/sample_client:all_files",
+        "//tests/integration_test:all_files",
+        "//tests/tc8_conformance:all_files",
         "//:BUILD",
         "//:MODULE.bazel",
     ],
