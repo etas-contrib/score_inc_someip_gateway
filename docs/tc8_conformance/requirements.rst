@@ -484,8 +484,7 @@ Component Requirements — Multi-service and Multi-instance
 
    Note: Traces to OA TC8 specification references SOMEIPSRV_RPC_13
    (multi-service hosting) and SOMEIPSRV_RPC_14 (per-instance port isolation).
-   Covered by ``test_multi_service.py`` in the ``tc8_multi_service`` Bazel target
-   (TC8_SD_PORT=30499, TC8_SVC_PORT=30512, TC8_SVC_TCP_PORT=30513).
+   Covered by ``test_multi_service.py`` in the ``test_tc8_multi_service`` Bazel target.
 
 Component Requirements — SD Format and Options Compliance
 -----------------------------------------------------------

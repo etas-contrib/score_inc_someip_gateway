@@ -481,7 +481,7 @@ SD Format and Options Compliance
    * - §5.1.5.1 — SOMEIPSRV_FORMAT_08
      - TC8-SDF-037
      - ``sd_format_fields``
-     - ``test_sd_format_compliance::TestSdMissingFormatFields::test_format_07_unicast_flag_set``
+     - ``test_sd_format_compliance::TestSdMissingFormatFields::test_format_08_unicast_flag_set``
    * - §5.1.5.1 — SOMEIPSRV_FORMAT_14
      - TC8-SDF-038
      - ``sd_format_fields``
@@ -503,11 +503,10 @@ SD Format and Options Compliance
 
 .. note::
 
-   **TC8-SDF-037 naming:** The test function is named
-   ``test_format_07_unicast_flag_set`` but verifies the **Unicast Flag (bit 6)**
-   of the SD Flags byte, which corresponds to ``SOMEIPSRV_FORMAT_08`` in the OA
-   spec.  ``SOMEIPSRV_FORMAT_07`` (Reboot Flag) is a separate requirement covered
-   by ``TC8-SD-012``.
+   **TC8-SDF-037:** The test function ``test_format_08_unicast_flag_set``
+   verifies the **Unicast Flag (bit 6)** of the SD Flags byte, which corresponds
+   to ``SOMEIPSRV_FORMAT_08`` in the OA spec.  ``SOMEIPSRV_FORMAT_07`` (Reboot
+   Flag) is a separate requirement covered by ``TC8-SD-012``.
 
 SD Entry Semantics
 ^^^^^^^^^^^^^^^^^^^

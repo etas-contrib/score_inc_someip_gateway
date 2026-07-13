@@ -38,73 +38,28 @@ analysis, coverage status, and known stack limitations see
 
 ## Quick Start
 
-TC8 tests are **opt-in** via ``--config=tc8``.  This creates a private
-network namespace per test (no ``sudo`` required), configures loopback
-multicast routing, and sets ``TC8_HOST_IP=127.0.0.1`` automatically.
-
 ```bash
-# Run all TC8 tests (self-configuring — no sudo needed)
-bazel test --config=tc8 //tests/tc8_conformance/...
+# Run all TC8 conformance tests (Linux)
+bazel test --config=tc8-itf //tests/tc8_conformance/...
 
 # Run a specific target
-bazel test --config=tc8 //tests/tc8_conformance:tc8_service_discovery
+bazel test --config=tc8-itf //tests/tc8_conformance:test_tc8_service_discovery
 
-# Use a non-loopback interface (no namespace wrapper needed)
-bazel test --test_env=TC8_HOST_IP=192.168.x.x //tests/tc8_conformance/...
+# Run on QNX x86_64
+bazel test --config=tc8-itf-qnx //tests/tc8_conformance/...
 ```
-
-> **Note:** ``bazel test //...`` excludes TC8 tests by default (via
-> ``--test_tag_filters=-tc8`` in ``.bazelrc``).  Pass ``--config=tc8``
-> to opt in.
 
 ## Network Setup
 
-Tests join multicast group `224.244.224.245:30490`.
+Default port values and IP addresses are defined in `tc8_itf_conftest.py`.
 
-| Method | Command | Multicast route | Tests run? |
-|---|---|---|---|
-| ``--config=tc8`` (recommended) | ``bazel test --config=tc8 //tests/tc8_conformance/...`` | Automatic (private namespace) | ✅ Yes |
-| Non-loopback interface | ``bazel test --test_env=TC8_HOST_IP=192.168.x.x ...`` | Not needed | ✅ Yes |
-| Manual loopback | ``bazel test --test_env=TC8_HOST_IP=127.0.0.1 ...`` | ``sudo ip route add 224.0.0.0/4 dev lo`` | ✅ Yes |
-| ``bazel test //...`` | — | — | ⏭️ Excluded |
-
-### Loopback vs. non-loopback interface
-
-Most TC8 tests work on loopback (``--config=tc8``).  A **non-loopback
-interface** — a named interface such as ``eth0``, ``ens0``, or ``genet0``
-with a routable IP address — is only needed for tests where vsomeip 3.6.1
-behaves differently on loopback:
-
-- **OPTIONS_08–14** (7 tests): vsomeip does not include
-  ``IPv4MulticastOption`` in SubscribeEventgroupAck when bound to loopback.
-  These tests skip automatically on loopback and pass on a non-loopback
-  interface.
-
-Future ETS application-level tests (see ``application/README.md``) will also
-run on loopback via ``--config=tc8``.  All child processes (``gatewayd``,
-``someipd``, ETS app) inherit the private network namespace because they are
-spawned as subprocesses.
-
-### Port Assignment per Target
-
-Each Bazel TC8 target receives unique SOME/IP port values via the Bazel
-`env` attribute. This prevents port conflicts when targets run in parallel.
-
-| Target | TC8_SD_PORT | TC8_SVC_PORT | TC8_SVC_TCP_PORT | exclusive |
-|---|---|---|---|---|
-| `tc8_service_discovery` | 30490 | 30500 | — | no |
-| `tc8_sd_phases_timing` | 30491 | 30501 | — | yes (timing) |
-| `tc8_message_format` | 30492 | 30502 | 30503 | no |
-| `tc8_event_notification` | 30493 | 30504 | 30505 | no |
-| `tc8_sd_reboot` | 30494 | 30506 | — | yes (lifecycle) |
-| `tc8_field_conformance` | 30495 | 30507 | 30508 | no |
-| `tc8_sd_format` | 30496 | 30509 | — | no |
-| `tc8_sd_robustness` | 30497 | 30510 | — | no |
-| `tc8_sd_client` | 30498 | 30511 | — | yes (lifecycle) |
-| `tc8_multi_service` | 30499 | 30512 | 30513 | no |
-
-Medium targets run in parallel; exclusive targets run serially for timing
-accuracy or lifecycle correctness.
+| Parameter | Default value | Source |
+|---|---|---|
+| SD multicast port (`TC8_SD_PORT`) | 30490 | `tc8_itf_conftest.py` |
+| Service UDP port (`TC8_SVC_PORT`) | 30509 | `tc8_itf_conftest.py` |
+| Service TCP port (`TC8_SVC_TCP_PORT`) | 30510 | `tc8_itf_conftest.py` |
+| Host TAP IP (`TC8_TESTER_IP`) | auto-configured | `tc8_itf_conftest.py` |
+| QEMU guest IP (`TC8_DUT_IP`) | auto-configured | `tc8_itf_conftest.py` |
 
 ## Configuration Templates
 
@@ -115,7 +70,7 @@ starting `someipd`.
 
 | Template | Used by | Key differences |
 |---|---|---|
-| `config/tc8_someipd_sd.json` | SD, SD-phases | Event `0x0777` (`is_field: true`, 2 s cycle), eventgroup `0x4455`, `cyclic_offer_delay=2000ms`, initial delay 10–100 ms, repetitions max 3; no TCP reliable port |
+| `config/tc8_someipd_sd.json` | SD, SD-phases | Event `0x0777` (`is_field: true`, 2 s cycle), eventgroup `0x4455`, `cyclic_offer_delay=2000ms`, initial delay 10-100 ms, repetitions max 3; no TCP reliable port |
 | `config/tc8_someipd_service.json` | MSG, EVT, FLD, TCP | Both events (0x0777 field + 0x0778 TCP-reliable), all 3 eventgroups (UDP 0x4455, multicast 0x4465, TCP 0x4475), TCP reliable port 30510, `cyclic_offer_delay=500ms` |
 | `config/tc8_someipd_multi.json` | Multi-service | Two service entries for multi-service/instance config validation |
 | `config/tc8_someipd_config.schema.json` | (all configs) | JSON Schema for validating TC8 vsomeip config templates |
@@ -130,7 +85,7 @@ starting `someipd`.
 | SD port | Dynamic (session-scoped) | Allocated at session start; enables parallel execution |
 | Service UDP port | `30509` | SOME/IP data endpoint |
 | Service TCP port | `30510` | TCP transport endpoint |
-| `initial_delay_min/max` | 10–100 ms | SD phase tests |
+| `initial_delay_min/max` | 10-100 ms | SD phase tests |
 | `ttl` | 30 s | Prevents expiry mid-test |
 
 ### Creating a New Config
@@ -153,6 +108,7 @@ can render them at test time.
 | `helpers/sd_malformed.py` | Malformed SD packet builders for robustness tests |
 | `helpers/tcp_helpers.py` | TCP transport helpers (reliable binding, stream framing) |
 | `helpers/udp_helpers.py` | UDP transport helpers (unreliable binding, length-field framing) |
+| `helpers/dut_lifecycle.py` | DUT launch and teardown helpers for ITF and standalone modes |
 
 ## Adding a New Test
 
@@ -186,22 +142,8 @@ Every new test follows this pattern:
        """Docstring is mandatory (enforced by the plugin)."""
    ```
 
-4. **Register a Bazel target** — add a `score_py_pytest` entry in `BUILD.bazel`
-   with `env_inherit = ["TC8_HOST_IP"]` and tags `["tc8", "conformance"]`:
-
-   ```python
-   score_py_pytest(
-       name = "tc8_message_format",
-       size = "medium",
-       srcs = ["test_someip_message_format.py", "conftest.py"]
-            + glob(["helpers/*.py"]),
-       data = glob(["config/*.json"]),
-       deps = ["//src/someipd", ...],
-       env_inherit = ["TC8_HOST_IP"],
-       tags = ["tc8", "conformance"],
-       target_compatible_with = ["@platforms//os:linux"],
-   )
-   ```
+4. **Register a Bazel target** — add an `integration_test()` entry in `BUILD.bazel`
+   following the pattern of existing entries, with tags `["tc8", "conformance"]`.
 
 5. **Add a requirement** — create a `comp_req` in
    `docs/tc8_conformance/requirements.rst` referencing the TC8 clause.
@@ -218,18 +160,18 @@ Every new test follows this pattern:
 
 ```
 tests/tc8_conformance/
-├── BUILD.bazel                        # Protocol conformance score_py_pytest targets
+├── BUILD.bazel                        # integration_test() targets (one per TC8 test file)
 ├── README.md                          # This file
-├── conftest.py                        # Fixtures: someipd_dut, host_ip, tester_ip
-├── test_service_discovery.py          # TC8-SD-001 … 008, 011, 013, 014
+├── tc8_itf_conftest.py                # ITF fixtures: someipd_dut, host_ip, dut_ip, tester_ip
+├── test_service_discovery.py          # TC8-SD-001 ... 008, 011, 013, 014
 ├── test_sd_phases_timing.py           # TC8-SD-009 / 010
 ├── test_sd_reboot.py                  # TC8-SD-012
-├── test_sd_format_compliance.py       # TC8-FORMAT_01 … OPTIONS_14 (SD format & options)
+├── test_sd_format_compliance.py       # TC8-FORMAT_01 ... OPTIONS_14 (SD format & options)
 ├── test_sd_robustness.py              # TC8 Group 4 — malformed SD message handling
 ├── test_sd_client.py                  # TC8-ETS_081/082/084 — SD client lifecycle
-├── test_someip_message_format.py      # TC8-MSG-001 … 008
-├── test_event_notification.py         # TC8-EVT-001 … 006
-├── test_field_conformance.py          # TC8-FLD-001 … 004
+├── test_someip_message_format.py      # TC8-MSG-001 ... 008
+├── test_event_notification.py         # TC8-EVT-001 ... 006
+├── test_field_conformance.py          # TC8-FLD-001 ... 004
 ├── test_multi_service.py              # SOMEIPSRV_RPC_13 — multi-service config
 ├── config/
 │   ├── tc8_someipd_sd.json            # SD config template (slow 2 s cycle)
@@ -239,6 +181,7 @@ tests/tc8_conformance/
 ├── helpers/
 │   ├── __init__.py
 │   ├── constants.py                   # Shared port/address constants
+│   ├── dut_lifecycle.py               # DUT launch and teardown (ITF + standalone)
 │   ├── sd_helpers.py                  # SD capture + parsing
 │   ├── sd_sender.py                   # SD packet building + unicast capture
 │   ├── sd_malformed.py                # Malformed SD packet builders (robustness)

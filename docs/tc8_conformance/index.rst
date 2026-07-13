@@ -34,6 +34,16 @@ All tests live under ``tests/tc8_conformance/`` and share the ``tc8`` /
 diagrams, and module structure, see
 :doc:`/architecture/tc8_conformance_testing`.
 
+.. note::
+
+   Protocol conformance tests run ``someipd`` in ``--tc8-standalone`` mode.
+   Fixture defaults (DUT IP, tester IP, port numbers) are defined in
+   ``tc8_itf_conftest.py``.  To run all protocol conformance tests::
+
+      bazel test --config=tc8-itf //tests/tc8_conformance/...
+
+   For QNX x86_64 use ``--config=tc8-itf-qnx``.
+
 .. toctree::
    :maxdepth: 2
 

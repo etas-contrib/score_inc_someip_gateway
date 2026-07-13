@@ -1281,12 +1281,12 @@ class TestSdMissingFormatFields:
         test_type="requirements-based",
         derivation_technique="requirements-analysis",
     )
-    def test_format_07_unicast_flag_set(
+    def test_format_08_unicast_flag_set(
         self,
         someipd_dut: subprocess.Popen[bytes],
         host_ip: str,
     ) -> None:
-        """FORMAT_07: SD Flags byte — Unicast flag (bit 6) must be set in OfferService.
+        """FORMAT_08: SD Flags byte — Unicast flag (bit 6) must be set in OfferService.
 
         PRS_SOMEIPSD_00351: The Unicast flag indicates the sender supports unicast
         communication.
@@ -1296,7 +1296,7 @@ class TestSdMissingFormatFields:
         _, sd_hdr, _, _ = _capture_raw_sd_offer(host_ip)
 
         assert sd_hdr.flag_unicast, (
-            "FORMAT_07: SD Flags Unicast flag (bit 6) must be set in OfferService; "
+            "FORMAT_08: SD Flags Unicast flag (bit 6) must be set in OfferService; "
             f"flag_unicast={sd_hdr.flag_unicast}"
         )
 

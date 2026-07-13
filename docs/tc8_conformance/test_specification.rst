@@ -29,6 +29,16 @@ For requirement definitions see :doc:`requirements`.
    TC8 Automotive Ethernet ECU Test Specification v3.0.
    See :doc:`traceability` for the full mapping.
 
+.. note:: Execution model
+
+   The host address is ``TC8_TESTER_IP``; the DUT address is ``TC8_DUT_IP``.
+   Both default values are defined in ``tc8_itf_conftest.py``.  To run a
+   test::
+
+      bazel test --config=tc8-itf //tests/tc8_conformance:test_tc8_<name>
+
+   For QNX x86_64 use ``--config=tc8-itf-qnx``.
+
 .. note:: Terminology
 
    Throughout this specification, **"server"** refers to the SOME/IP Service Provider role
@@ -340,7 +350,7 @@ a multicast IPv4EndpointOption.
 
 **Preconditions:**
 
-- Non-loopback network interface (``TC8_HOST_IP`` set).
+- Non-loopback network interface (``TC8_TESTER_IP`` set).
 - Eventgroup ``0x4465`` configured with multicast address ``239.0.0.1``.
 
 **Stimuli:**
@@ -1597,7 +1607,7 @@ TC8-SDF-028 — Multicast Option: Length = 0x0009
 Verify that the IPv4MulticastOption in SubscribeEventgroupAck has length field 0x0009.
 
 **Preconditions:**
-Non-loopback interface (TC8_HOST_IP set); eventgroup 0x4465 configured with multicast address.
+Non-loopback interface (``TC8_TESTER_IP`` set); eventgroup 0x4465 configured with multicast address.
 
 **Stimulus:**
 Send SubscribeEventgroup for eventgroup 0x4465; capture Ack and extract multicast option.

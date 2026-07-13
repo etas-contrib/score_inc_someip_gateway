@@ -413,8 +413,7 @@ test and process lifecycle.
    TO -down-> PO : uses
    @enduml
 
-The orchestrator starts the ETS application, ``gatewayd``, and ``someipd``
-via ``conftest.py`` subprocess fixtures — the same ``subprocess.Popen``
-pattern used for the standalone ``someipd`` fixture. The S-CORE ITF
-framework is the preferred long-term orchestrator for multi-node or
-structured CI reporting scenarios.
+``someipd`` runs as the DUT in the QEMU guest. The Python socket-based tester
+and pytest run on the host side. This project provides ``tc8_itf_conftest.py`` and
+``helpers/dut_lifecycle.py`` as the glue between the two sides. ``TC8_DUT_IP``
+addresses the QEMU guest; ``TC8_TESTER_IP`` addresses the host TAP interface.
