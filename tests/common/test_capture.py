@@ -220,6 +220,47 @@ def test_tcpdump_capture_text_mode_excludes_dash_u_flag(
     )
 
 
+def test_tcpdump_capture_includes_z_flag_with_current_user(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """-Z is passed with the current username so tcpdump does not attempt to drop to its compiled-in default user (fails without CAP_SETUID in CI)."""
+    import os
+    import pwd
+    import capture as capture_module  # noqa: PLC0415
+
+    original_popen = capture_module.subprocess.Popen
+    captured_args: list[list[str]] = []
+
+    def _popen_record(args: list, **kwargs):  # type: ignore[override]
+        captured_args.append(list(args))
+        return original_popen(["sleep", "5"], **kwargs)
+
+    monkeypatch.setattr(capture_module.subprocess, "Popen", _popen_record)
+
+    proc = tcpdump_capture("icmp")
+    proc.kill()
+    proc.wait()
+
+    assert captured_args, "Popen was not called"
+    args = captured_args[0]
+    assert "-Z" in args, f"-Z flag missing from tcpdump args: {args}"
+
+    z_index = args.index("-Z")
+    assert z_index + 1 < len(args), "-Z flag has no argument"
+    z_user = args[z_index + 1]
+
+    # The -Z argument must be the current user's name (prevents privilege drop
+    # to the compiled-in tcpdump user).
+    try:
+        expected_user = pwd.getpwuid(os.getuid()).pw_name
+    except KeyError:
+        expected_user = "root" if os.getuid() == 0 else str(os.getuid())
+
+    assert z_user == expected_user, (
+        f"-Z argument is '{z_user}', expected '{expected_user}'"
+    )
+
+
 # ---------------------------------------------------------------------------
 # stop_capture
 # ---------------------------------------------------------------------------

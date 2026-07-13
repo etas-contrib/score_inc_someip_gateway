@@ -15,6 +15,7 @@
 
 import io
 import os
+import pwd
 import signal
 import subprocess
 import time
@@ -146,16 +147,21 @@ def tcpdump_capture(
     Raises:
         RuntimeError: tcpdump exited immediately (missing binary or CAP_NET_RAW).
     """
+    # Pass -Z <current_user> so tcpdump drops to the process's own uid rather
+    # than its compiled-in default user, which fails in CI without CAP_SETUID.
+    try:
+        _z_user = pwd.getpwuid(os.getuid()).pw_name
+    except KeyError:
+        # uid has no /etc/passwd entry (minimal container); use numeric fallback
+        _z_user = "root" if os.getuid() == 0 else str(os.getuid())
+
     args = [
         "/usr/bin/tcpdump",
         "-n",
         "-i",
         "any",
-        # No -Z: we run as the current user throughout. Passing -Z to "drop"
-        # to the same user we already are is tautological, triggers side effects
-        # (capability stripping, file-open after privilege change) that cause
-        # Permission denied on the pcap output file in some sandbox environments,
-        # and prevents the parent process from signalling the child (EPERM).
+        "-Z",
+        _z_user,
     ]
     if output_file is not None:
         args.extend(
