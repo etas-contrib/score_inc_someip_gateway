@@ -492,3 +492,24 @@ def test_tcpdump_capture_raises_on_immediate_exit(
 
     with pytest.raises(RuntimeError, match="tcpdump failed to start"):
         tcpdump_capture("icmp")
+
+
+def test_tcpdump_capture_does_not_raise_on_immediate_clean_exit(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """No RuntimeError when tcpdump exits immediately with code 0 (e.g. packet_count=1 captured instantly).
+
+    A clean zero-exit within the 0.2 s window is a valid completion (packet_count
+    satisfied), NOT a startup failure.  Only non-zero exits indicate errors.
+    """
+    import capture as capture_module  # noqa: PLC0415
+
+    original_popen = capture_module.subprocess.Popen
+
+    def _popen_true(args: list, **kwargs):  # type: ignore[override]
+        return original_popen(["true"], **kwargs)
+
+    monkeypatch.setattr(capture_module.subprocess, "Popen", _popen_true)
+
+    proc = tcpdump_capture("icmp")
+    proc.wait()

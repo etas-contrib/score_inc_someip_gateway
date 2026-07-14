@@ -201,7 +201,7 @@ def tcpdump_capture(
 
     # tcpdump exits within milliseconds if CAP_NET_RAW is missing or binary absent.
     time.sleep(0.2)
-    if proc.poll() is not None:
+    if proc.poll() is not None and proc.returncode != 0:
         stderr_text = _get_content_of_file_object(proc.stderr)
         raise RuntimeError(
             f"tcpdump failed to start (exit code {proc.returncode}). "
