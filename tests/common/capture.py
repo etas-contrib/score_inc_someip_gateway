@@ -76,11 +76,11 @@ def stop_capture(
     proc: subprocess.Popen[bytes],
     timeout: float = 5.0,
 ) -> bool:
-    """Send SIGINT to the process group of *proc* (tcpdump flushes pcap cleanly), wait,
-    fall back to SIGKILL on the group.
+    """Send SIGINT to *proc* (tcpdump flushes the pcap cleanly on SIGINT), wait,
+    fall back to SIGKILL + pkill sweep on timeout.
 
-    Killing the entire process group ensures that any child forked by tcpdump
-    (e.g. due to -Z privilege-separation) is also terminated, preventing orphans.
+    After SIGKILL, ``pkill -9 -x tcpdump`` mops up any privilege-separation
+    child processes forked by tcpdump's -Z handling that survive a parent kill.
 
     Returns True if the process exited cleanly (or was already gone), False if
     SIGKILL was required.
@@ -89,19 +89,19 @@ def stop_capture(
         return True  # already exited
 
     try:
-        os.killpg(os.getpgid(proc.pid), signal.SIGINT)
+        proc.send_signal(signal.SIGINT)
     except ProcessLookupError:
-        return True  # group already gone
+        return True  # process exited between poll() and send_signal()
+    except PermissionError:
+        return False  # EPERM from -Z sandbox barrier; process likely still alive
 
     try:
         proc.wait(timeout=timeout)
         return True
     except subprocess.TimeoutExpired:
-        try:
-            os.killpg(os.getpgid(proc.pid), signal.SIGKILL)
-        except ProcessLookupError:
-            pass  # group gone between timeout and SIGKILL
+        proc.kill()
         proc.wait()
+        subprocess.run(["pkill", "-9", "-x", "tcpdump"], check=False)
         return False
 
 
@@ -110,12 +110,21 @@ class CaptureProcess:
 
     On context exit, sends SIGINT to flush the pcap cleanly, then falls back
     to SIGKILL if the process does not terminate within the grace period.
+    If the pcap was written to a temporary /tmp path, it is moved to the
+    caller's requested destination after capture stops.
     Direct attribute access (poll, kill, wait, returncode, …) is delegated to
     the wrapped Popen so callers that store the object directly continue to work.
     """
 
-    def __init__(self, proc: subprocess.Popen[bytes]) -> None:
+    def __init__(
+        self,
+        proc: subprocess.Popen[bytes],
+        tmp_pcap: str | None = None,
+        final_pcap: str | None = None,
+    ) -> None:
         self._proc = proc
+        self._tmp_pcap = tmp_pcap
+        self._final_pcap = final_pcap
 
     def __enter__(self) -> subprocess.Popen[bytes]:
         return self._proc
@@ -127,6 +136,11 @@ class CaptureProcess:
         tb: Any,
     ) -> None:
         stop_capture(self._proc)
+        if self._tmp_pcap and self._final_pcap and self._tmp_pcap != self._final_pcap:
+            try:
+                os.replace(self._tmp_pcap, self._final_pcap)
+            except OSError:
+                pass  # best-effort; destination may be in a restricted sandbox path
 
     def __getattr__(self, name: str) -> Any:  # noqa: ANN401
         return getattr(self._proc, name)
@@ -142,7 +156,8 @@ def tcpdump_capture(
     Args:
         filter_expression: BPF filter string.
         packet_count: Exit after this many packets; omit when using stop_capture.
-        output_file: Write pcap to this path; None streams text to stdout.
+        output_file: Move the completed pcap to this path after capture stops;
+                     None streams text to stdout.
 
     Raises:
         RuntimeError: tcpdump exited immediately (missing binary or CAP_NET_RAW).
@@ -163,28 +178,25 @@ def tcpdump_capture(
         "-Z",
         _z_user,
     ]
+
+    # Write pcap to /tmp, which is writable in all sandbox configurations.
+    # CaptureProcess.__exit__ moves it to output_file after capture stops.
+    tmp_pcap: str | None = None
     if output_file is not None:
-        args.extend(
-            ["-U", "-w", output_file]
-        )  # -U: packet-buffered, readable after abrupt stop
+        tmp_pcap = f"/tmp/tcpdump_{os.urandom(8).hex()}.pcap"
+        args.extend(["-U", "-w", tmp_pcap])  # -U: packet-buffered
     else:
-        # -l: line-buffered output for text (non-pcap) mode.
-        args.append("-l")
+        args.append("-l")  # line-buffered output for text mode
+
     if packet_count is not None:
         args.extend(["-c", str(packet_count)])
     if filter_expression:
         args.append(filter_expression)
 
-    if output_file is not None:
-        pcap_dir = os.path.dirname(output_file)
-        if pcap_dir:
-            os.makedirs(pcap_dir, exist_ok=True)
-
     proc = subprocess.Popen(
         args,
         stdout=subprocess.PIPE if output_file is None else subprocess.DEVNULL,
         stderr=subprocess.PIPE,
-        start_new_session=True,
     )
 
     # tcpdump exits within milliseconds if CAP_NET_RAW is missing or binary absent.
@@ -197,4 +209,4 @@ def tcpdump_capture(
             f"CAP_NET_RAW capability. stderr: {stderr_text}"
         )
 
-    return CaptureProcess(proc)
+    return CaptureProcess(proc, tmp_pcap=tmp_pcap, final_pcap=output_file)

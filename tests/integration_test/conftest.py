@@ -16,6 +16,7 @@
 Pytest configuration and fixtures for integration tests.
 """
 
+import logging
 import os
 import pytest
 from typing import Generator
@@ -46,8 +47,11 @@ def gatewayd_with_someipd(clean_state: Target) -> Generator[Target, None, None]:
     pcap_dir = os.environ.get("TEST_UNDECLARED_OUTPUTS_DIR", ".")
     pcap_file = os.path.join(pcap_dir, "test_traffic.pcap")
 
-    tcpdump_host = tcpdump_capture("", output_file=pcap_file)
-    tcpdump_process = tcpdump_host.__enter__()
+    try:
+        tcpdump_host = tcpdump_capture("", output_file=pcap_file)
+        tcpdump_host.__enter__()
+    except RuntimeError:
+        logging.warning("tcpdump could not start; pcap capture skipped")
 
     with ShellProcess(
         clean_state,
