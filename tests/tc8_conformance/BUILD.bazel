@@ -41,6 +41,7 @@ py_library(
     name = "tc8-helpers-lib",
     srcs = glob(["helpers/*.py"]),
     imports = ["."],
+    target_compatible_with = ["@platforms//os:linux"],
     deps = [
         "@score_someip_gateway_pip//someip",
     ],
@@ -98,6 +99,7 @@ py_library(
     name = "tc8-itf-lib",
     srcs = ["tc8_itf_conftest.py"],
     imports = ["."],
+    target_compatible_with = ["@platforms//os:linux"],
     deps = [
         ":tc8-helpers-lib",
         # @score_itf//:itf is NOT declared here — py_itf_test already adds it
