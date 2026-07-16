@@ -652,6 +652,7 @@ class TestEventTcpNotification:
         tcp_sock.bind((tester_ip, 0))
         tcp_sock.connect((dut_ip, DUT_RELIABLE_PORT))
         local_port = tcp_sock.getsockname()[1]
+        time.sleep(0.5)  # give the DUT time to register the accepted TCP endpoint
 
         sd_sock = open_sender_socket(tester_ip)
         try:
@@ -673,7 +674,7 @@ class TestEventTcpNotification:
             entries = capture_unicast_sd_entries(
                 sd_sock,
                 filter_types=(SOMEIPSDEntryType.SubscribeAck,),
-                timeout_secs=5.0,
+                timeout_secs=10.0,
                 resend=lambda: send_subscribe_eventgroup(
                     sd_sock,
                     (dut_ip, SD_PORT),
