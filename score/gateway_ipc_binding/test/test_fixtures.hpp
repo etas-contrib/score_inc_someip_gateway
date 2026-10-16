@@ -84,15 +84,14 @@ class Gateway_ipc_binding_unconnected_integration_test : public ::testing::Test,
         return server;
     }
 
-    std::unique_ptr<Gateway_ipc_binding_server> create_mw_com_server(socom::Runtime& runtime) {
-        return create_mw_com_server(
-            runtime, "someipd/daemon",
-            {{interface,
-              instance,
-              "bridged_ipc/bridged",
-              mw_com::Role::provider,
-              {{"event_a", server_metadata.slot_size}, {"event_b", server_metadata.slot_size}},
-              server_metadata.slot_count}});
+    /// \brief The bridged test service of the mw::com flavour, sized by mw_com_metadata
+    mw_com::Service_configs mw_com_services(mw_com::Role const role) const {
+        return {{interface,
+                 instance,
+                 "bridged_ipc/bridged",
+                 role,
+                 {{"event_a", mw_com_metadata.slot_size}, {"event_b", mw_com_metadata.slot_size}},
+                 mw_com_metadata.slot_count}};
     }
 
     std::unique_ptr<Gateway_ipc_binding_server> create_mw_com_server(
@@ -114,17 +113,6 @@ class Gateway_ipc_binding_unconnected_integration_test : public ::testing::Test,
 
         SCORE_LANGUAGE_FUTURECPP_ASSERT(client && "Client creation failed");
         return client;
-    }
-
-    std::unique_ptr<Gateway_ipc_binding_client> create_mw_com_client(socom::Runtime& runtime) {
-        return create_mw_com_client(
-            runtime, "someipd/daemon",
-            {{interface,
-              instance,
-              "bridged_ipc/bridged",
-              mw_com::Role::consumer,
-              {{"event_a", server_metadata.slot_size}, {"event_b", server_metadata.slot_size}},
-              server_metadata.slot_count}});
     }
 
     std::unique_ptr<Gateway_ipc_binding_client> create_mw_com_client(
@@ -180,13 +168,30 @@ class Gateway_ipc_binding_bidirectional_test
    protected:
     void SetUp() override {
         if (GetParam().implementation == Ipc_binding_implementation::Mw_com) {
-            this->server = this->create_mw_com_server(*this->runtime_server);
+            // The binding next to the SOCom server provides the bridged service.
+            bool const server_provides = GetParam().direction == Direction::Client_to_server;
+            this->server = this->create_mw_com_server(
+                *this->runtime_server, "someipd/daemon",
+                this->mw_com_services(server_provides ? mw_com::Role::provider
+                                                      : mw_com::Role::consumer));
             ASSERT_NE(this->server, nullptr);
-            this->client = this->create_mw_com_client(*this->runtime_client);
+            this->client = this->create_mw_com_client(
+                *this->runtime_client, "someipd/daemon",
+                this->mw_com_services(server_provides ? mw_com::Role::consumer
+                                                      : mw_com::Role::provider));
             ASSERT_NE(this->client, nullptr);
             this->start_and_wait_for_client_connection();
         } else {
             BASE::SetUp();
+        }
+    }
+
+    void TearDown() override {
+        // The consumer goes first. Destroying the provider first makes the consumer drop its
+        // GenericProxy on a mw::com thread, which can outlive the binding. The next test's
+        // skeleton then reopens that proxy's read-only mapping and crashes on the first write.
+        if (is_mw_com() && (GetParam().direction == Direction::Server_to_client)) {
+            this->server.reset();
         }
     }
 
@@ -204,6 +209,9 @@ class Gateway_ipc_binding_bidirectional_test
     }
 
     Shared_memory_metadata const& get_server_metadata() {
+        if (is_mw_com()) {
+            return this->mw_com_metadata;
+        }
         return GetParam().direction == Direction::Client_to_server ? this->server_metadata
                                                                    : this->client_metadata;
     }
