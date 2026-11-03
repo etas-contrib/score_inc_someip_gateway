@@ -28,11 +28,15 @@ transport. They do not claim method-call transport, which is not implemented.
    :derived_from: feat_req__com__service_discovery, feat_req__com__service_instance_names
    :satisfied_by: comp__gateway_ipc_binding
 
-   The IPC binding shall carry the ``Service_instance`` identity of each
-   offered service between peers and, once the IPC client and server are
-   connected, establish a local SOCom client or server connector whose
-   service-instance identifier matches the identity received from the remote
-   peer.
+   For each supplied ``Service_config``, the mw::com-backed binding shall set
+   up local endpoints according to its role. A provider entry shall create a
+   ``GenericSkeleton`` and SOCom client connector. A consumer entry shall
+   create a SOCom server connector and start service discovery for its
+   configured ``InstanceSpecifier``, attaching a ``GenericProxy`` when a
+   matching provider is found. The client shall set up its configured
+   bindings during ``create_client``, before discovering ``SomeipdService``.
+   The server shall set up bindings while processing an
+   ``AddServiceConfiguration`` request.
 
 .. comp_req:: IPC binding propagates event subscriptions
    :id: comp_req__gib__propagates_subscriptions
