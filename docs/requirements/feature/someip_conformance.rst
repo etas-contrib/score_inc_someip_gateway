@@ -16,10 +16,10 @@ SOME/IP Protocol Features
 =========================
 
 These local feature requirements define the SOME/IP Gateway behavior in scope
-for TC8 conformance. ``:derived_from:`` links to mirrored Open SOME/IP
-requirement IDs; each mirrored ID links to the pinned upstream source line.
-Only the selected IDs below are used as the basis for this TC8 traceability
-scope; the import also retains the remaining upstream requirement identifiers.
+for TC8 conformance. They derive from the local interoperability stakeholder
+requirement and selected mirrored Open SOME/IP stakeholder requirements; each
+mirrored ID links to the pinned upstream source line. The import also retains
+the remaining upstream requirement identifiers.
 
 Service Discovery
 -----------------
@@ -28,7 +28,8 @@ Service Discovery
    :id: feat_req__someip_gateway__sd_offer
    :status: valid
    :version: 1
-   :derived_from: feat_req__extspec__someipsd_47, feat_req__extspec__someipsd_253
+   :derived_from: stkh_req__someip_gw__interoperability,
+                  stkh_req__extspec__someipsd_47, stkh_req__extspec__someipsd_253
    :satisfied_by: feat__someip_gateway
    :safety: QM
    :security: NO
@@ -43,7 +44,8 @@ Service Discovery
    :id: feat_req__someip_gateway__sd_cyclic_offer
    :status: valid
    :version: 1
-   :derived_from: feat_req__extspec__someipsd_79, feat_req__extspec__someipsd_81
+   :derived_from: stkh_req__someip_gw__interoperability,
+                  stkh_req__extspec__someipsd_79, stkh_req__extspec__someipsd_81
    :satisfied_by: feat__someip_gateway
    :safety: QM
    :security: NO
@@ -57,8 +59,9 @@ Service Discovery
    :id: feat_req__someip_gateway__sd_find_service
    :status: valid
    :version: 1
-   :derived_from: feat_req__extspec__someipsd_83, feat_req__extspec__someipsd_90,
-                  feat_req__extspec__someipsd_91, feat_req__extspec__someipsd_824
+   :derived_from: stkh_req__someip_gw__interoperability,
+                  stkh_req__extspec__someipsd_83, stkh_req__extspec__someipsd_90,
+                  stkh_req__extspec__someipsd_91, stkh_req__extspec__someipsd_824
    :satisfied_by: feat__someip_gateway
    :safety: QM
    :security: NO
@@ -70,13 +73,14 @@ Service Discovery
    Service Discovery state.
 
 .. feat_req:: SOME/IP-SD Eventgroup Subscription Lifecycle
-   :id: feat_req__someip_gateway__sd_eventgroup_lifecycle
+   :id: feat_req__someip_gateway__sd_eventgroup_subs
    :status: valid
    :version: 1
-   :derived_from: feat_req__extspec__someipsd_321, feat_req__extspec__someipsd_322,
-                  feat_req__extspec__someipsd_332, feat_req__extspec__someipsd_333,
-                  feat_req__extspec__someipsd_613, feat_req__extspec__someipsd_614,
-                  feat_req__extspec__someipsd_618, feat_req__extspec__someipsd_619
+   :derived_from: stkh_req__someip_gw__interoperability,
+                  stkh_req__extspec__someipsd_321, stkh_req__extspec__someipsd_322,
+                  stkh_req__extspec__someipsd_332, stkh_req__extspec__someipsd_333,
+                  stkh_req__extspec__someipsd_613, stkh_req__extspec__someipsd_614,
+                  stkh_req__extspec__someipsd_618, stkh_req__extspec__someipsd_619
    :satisfied_by: feat__someip_gateway
    :safety: QM
    :security: NO
@@ -91,10 +95,11 @@ Service Discovery
    :id: feat_req__someip_gateway__sd_phase_timing
    :status: valid
    :version: 1
-   :derived_from: feat_req__extspec__someipsd_62, feat_req__extspec__someipsd_63,
-                  feat_req__extspec__someipsd_64, feat_req__extspec__someipsd_67,
-                  feat_req__extspec__someipsd_73, feat_req__extspec__someipsd_75,
-                  feat_req__extspec__someipsd_76
+   :derived_from: stkh_req__someip_gw__interoperability,
+                  stkh_req__extspec__someipsd_62, stkh_req__extspec__someipsd_63,
+                  stkh_req__extspec__someipsd_64, stkh_req__extspec__someipsd_67,
+                  stkh_req__extspec__someipsd_73, stkh_req__extspec__someipsd_75,
+                  stkh_req__extspec__someipsd_76
    :satisfied_by: feat__someip_gateway
    :safety: QM
    :security: NO
@@ -108,9 +113,10 @@ Service Discovery
    :id: feat_req__someip_gateway__sd_endpoint_options
    :status: valid
    :version: 1
-   :derived_from: feat_req__extspec__someipsd_127, feat_req__extspec__someipsd_128,
-                  feat_req__extspec__someipsd_129, feat_req__extspec__someipsd_681,
-                  feat_req__extspec__someipsd_849, feat_req__extspec__someipsd_850
+   :derived_from: stkh_req__someip_gw__interoperability,
+                  stkh_req__extspec__someipsd_127, stkh_req__extspec__someipsd_128,
+                  stkh_req__extspec__someipsd_129, stkh_req__extspec__someipsd_681,
+                  stkh_req__extspec__someipsd_849, stkh_req__extspec__someipsd_850
    :satisfied_by: feat__someip_gateway
    :safety: QM
    :security: NO
@@ -124,7 +130,9 @@ Service Discovery
    :id: feat_req__someip_gateway__sd_reboot_handling
    :status: valid
    :version: 1
-   :derived_from: feat_req__extspec__someipsd_41, feat_req__extspec__someipsd_765, feat_req__extspec__someipsd_863, feat_req__extspec__someipsd_871
+   :derived_from: stkh_req__someip_gw__interoperability,
+                  stkh_req__extspec__someipsd_41, stkh_req__extspec__someipsd_765,
+                  stkh_req__extspec__someipsd_863, stkh_req__extspec__someipsd_871
    :satisfied_by: feat__someip_gateway
    :safety: QM
    :security: NO
@@ -136,11 +144,12 @@ Service Discovery
    restarts.
 
 .. feat_req:: SOME/IP-SD Multicast Eventgroups
-   :id: feat_req__someip_gateway__sd_multicast_eventgroup
+   :id: feat_req__someip_gateway__sd_multicast_eg
    :status: valid
    :version: 1
-   :derived_from: feat_req__extspec__someipsd_723, feat_req__extspec__someipsd_724,
-                  feat_req__extspec__someipsd_763, feat_req__extspec__someipsd_854
+   :derived_from: stkh_req__someip_gw__interoperability,
+                  stkh_req__extspec__someipsd_723, stkh_req__extspec__someipsd_724,
+                  stkh_req__extspec__someipsd_763, stkh_req__extspec__someipsd_854
    :satisfied_by: feat__someip_gateway
    :safety: QM
    :security: NO
@@ -157,9 +166,10 @@ SOME/IP Messages and Events
    :id: feat_req__someip_gateway__response_messages
    :status: valid
    :version: 1
-   :derived_from: feat_req__extspec__someip_79, feat_req__extspec__someip_83,
-                  feat_req__extspec__someip_90, feat_req__extspec__someip_95,
-                  feat_req__extspec__someip_141
+   :derived_from: stkh_req__someip_gw__interoperability,
+                  stkh_req__extspec__someip_79, stkh_req__extspec__someip_83,
+                  stkh_req__extspec__someip_90, stkh_req__extspec__someip_95,
+                  stkh_req__extspec__someip_141
    :satisfied_by: feat__someip_gateway
    :safety: QM
    :security: NO
@@ -174,8 +184,9 @@ SOME/IP Messages and Events
    :id: feat_req__someip_gateway__error_return_codes
    :status: valid
    :version: 1
-   :derived_from: feat_req__extspec__someip_144, feat_req__extspec__someip_371,
-                  feat_req__extspec__someip_816
+   :derived_from: stkh_req__someip_gw__interoperability,
+                  stkh_req__extspec__someip_144, stkh_req__extspec__someip_371,
+                  stkh_req__extspec__someip_816
    :satisfied_by: feat__someip_gateway
    :safety: QM
    :security: NO
@@ -187,11 +198,12 @@ SOME/IP Messages and Events
    by the gateway configuration.
 
 .. feat_req:: SOME/IP Event Notification Delivery
-   :id: feat_req__someip_gateway__event_notification_delivery
+   :id: feat_req__someip_gateway__event_delivery
    :status: valid
    :version: 1
-   :derived_from: feat_req__extspec__someip_361, feat_req__extspec__someip_807,
-                  feat_req__extspec__someipsd_1297
+   :derived_from: stkh_req__someip_gw__interoperability,
+                  stkh_req__extspec__someip_361, stkh_req__extspec__someip_807,
+                  stkh_req__extspec__someipsd_1297
    :satisfied_by: feat__someip_gateway
    :safety: QM
    :security: NO

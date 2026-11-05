@@ -11,9 +11,9 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 # *******************************************************************************
-"""Generate mirrored feat_req blocks for the Open SOME/IP specification.
+"""Generate mirrored stkh_req blocks for the Open SOME/IP specification.
 
-Each requirement in the specification becomes a local `feat_req` carrying its
+Each requirement in the specification becomes a local `stkh_req` carrying its
 identifier and its source location, but not its text: the specification is
 licensed Community-Spec-1.0 and its wording is not reproduced here. The
 `hash` field holds "<document>:<line>", which `needs_string_links` in
@@ -53,7 +53,7 @@ Follow ``hash`` to read a requirement at its source.
 REQTYPE = {"Requirement": "Functional", "Information": "Non-Functional"}
 
 BLOCK = """
-.. feat_req:: Open SOME/IP {part} {number}
+.. stkh_req:: Open SOME/IP {part} {number}
    :id: {id}
    :reqtype: {reqtype}
    :security: {security}
@@ -61,7 +61,7 @@ BLOCK = """
    :status: valid
    :version: 1
    :valid_from: {valid_from}
-   :satisfied_by: {satisfied_by}
+   :rationale: This mirrored source requirement is retained at the stakeholder level; see the linked upstream source line.
    :hash: {docname}:{lineno}
 
    Mirrored from the Open SOME/IP specification; text not reproduced.
@@ -72,7 +72,6 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("src", help="vendored needs export")
     ap.add_argument("dst", help="reStructuredText file to write")
-    ap.add_argument("--satisfied-by", default="feat__someip_gateway")
     ap.add_argument("--valid-from", default="v0.1.0")
     args = ap.parse_args()
 
@@ -91,12 +90,11 @@ def main() -> None:
             BLOCK.format(
                 part=match.group(1),
                 number=match.group(2),
-                id=f"feat_req__extspec__{match.group(1)}_{match.group(2)}",
+                id=f"stkh_req__extspec__{match.group(1)}_{match.group(2)}",
                 reqtype=REQTYPE.get(need.get("reqtype"), "Non-Functional"),
                 security="NO" if need.get("security") == "TBD" else need.get("security", "NO"),
                 safety="QM" if need.get("safety") == "TBD" else need.get("safety", "QM"),
                 valid_from=args.valid_from,
-                satisfied_by=args.satisfied_by,
                 docname=need["docname"],
                 lineno=need["lineno"],
             )

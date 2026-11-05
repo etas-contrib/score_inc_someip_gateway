@@ -132,7 +132,7 @@ Specification (AUTOSAR PRS_SOMEIP_SD).
    :status: valid
    :version: 1
    :tags: tc8, conformance, service_discovery, eventgroup
-   :derived_from: feat_req__someip_gateway__sd_eventgroup_lifecycle
+   :derived_from: feat_req__someip_gateway__sd_eventgroup_subs
    :satisfied_by: comp__someipd
    :safety: QM
    :security: NO
@@ -154,7 +154,7 @@ Specification (AUTOSAR PRS_SOMEIP_SD).
    :status: valid
    :version: 1
    :tags: tc8, conformance, service_discovery, eventgroup, timing
-   :derived_from: feat_req__someip_gateway__sd_eventgroup_lifecycle
+   :derived_from: feat_req__someip_gateway__sd_eventgroup_subs
    :satisfied_by: comp__someipd
    :safety: QM
    :security: NO
@@ -225,7 +225,7 @@ Specification (AUTOSAR PRS_SOMEIP_SD).
    :status: valid
    :version: 1
    :tags: tc8, conformance, service_discovery, multicast
-   :derived_from: feat_req__someip_gateway__sd_multicast_eventgroup
+   :derived_from: feat_req__someip_gateway__sd_multicast_eg
    :satisfied_by: comp__someipd
    :safety: QM
    :security: NO
@@ -292,7 +292,7 @@ Component Requirements — Event Notification
    :status: valid
    :version: 1
    :tags: tc8, conformance, events, notification
-   :derived_from: feat_req__someip_gateway__event_notification_delivery
+   :derived_from: feat_req__someip_gateway__event_delivery
    :satisfied_by: comp__someipd
    :safety: QM
    :security: NO

@@ -20,7 +20,7 @@ derives from a stakeholder requirement via ``:satisfies:`` and is scoped to
 a specific gateway capability.
 
 Feature requirement IDs follow the format:
-``feat_req__some_ip_gateway__<title_snake_case>``
+``feat_req__someip_gateway__<title_snake_case>``
 
 .. note::
 
