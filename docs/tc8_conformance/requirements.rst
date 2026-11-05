@@ -15,49 +15,6 @@
 TC8 Conformance Test Requirements
 =================================
 
-Overview
---------
-
-This document defines the requirements for verifying ``someipd`` against
-the OPEN Alliance TC8 SOME/IP test specification.
-
-It belongs to a set of three documents that work together:
-
-.. list-table:: TC8 Conformance Documentation Set
-   :widths: 25 75
-   :header-rows: 1
-
-   * - Document
-     - Purpose
-   * - **requirements.rst** (this file)
-     - Defines *what* must be verified: one feature requirement and
-       multiple component requirements, each linked to the S-CORE
-       requirement hierarchy.
-   * - :doc:`test_specification`
-     - Defines *how* each test runs: purpose, preconditions, stimuli,
-       and expected results.
-   * - :doc:`traceability`
-     - Maps external OA spec test case IDs to internal test IDs and
-       component requirements, and shows generated test results.
-
-How the feature / component split works for TC8
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-For TC8 conformance, the split is simple:
-
-* **One feature requirement**
-  (``feat_req__tc8_conformance__conformance``) covers the overall goal:
-  "verify ``someipd`` against OA TC8 SOME/IP at the wire level." This
-  requirement does **not** change when new test areas are added.
-
-* **Many component requirements**, one per testable protocol aspect
-  (e.g., SD offer format, cyclic timing, response headers, TCP
-  transport). Each component requirement:
-
-  - Describes the specific behaviour under test.
-  - References the relevant AUTOSAR PRS or TC8 specification section.
-  - Is verified by one or more pytest functions.
-
 Feature Requirement
 -------------------
 
@@ -69,7 +26,7 @@ as a formal verification activity for the SOME/IP Gateway's protocol stack.
    :status: valid
    :version: 1
    :tags: tc8, conformance, someip, verification
-   :derived_from: stkh_req__someip_gw__interoperability
+   :derived_from: stkh_req__docgen_enabled__example
    :satisfied_by: feat__someip_gateway
    :safety: QM
    :security: NO
@@ -81,14 +38,11 @@ as a formal verification activity for the SOME/IP Gateway's protocol stack.
    specifications at the wire protocol level, without requiring application
    processes.
 
-   **Scope boundary:** This document currently defines only the top-level
-   feature requirement and the initial set of TC8 component requirements
-   established for the test infrastructure split. The remaining component
-   requirements, covering method calls, field access, and the detailed
-   traceability matrix against the OA TC8 v3.0 Chapter 6 test catalog, are
-   added together with the test modules that implement and verify them.
+   Note: The ``:derived_from:`` link targets a placeholder stakeholder requirement.
+   This shall be updated to reference the upstream S-CORE stakeholder requirement
+   for SOME/IP interoperability once it is formally defined.
 
-Component Requirements: Service Discovery
+Component Requirements — Service Discovery
 ------------------------------------------
 
 The following component requirements define the high-priority TC8 conformance
@@ -109,11 +63,11 @@ Specification (AUTOSAR PRS_SOMEIP_SD).
    The conformance test suite shall verify that ``someipd`` transmits
    SOME/IP-SD OfferService entries on the configured multicast group
    with correct service ID, instance ID, major/minor version, and TTL
-   fields upon startup. It shall also verify that the SD Session ID
-   increases with each message and restarts at 0x0001 after 0xFFFF.
+   fields upon startup.
 
-   Note: Traces to AUTOSAR SOME/IP Service Discovery Protocol
-   Specification R24-11, section 5.1.2.5.2 (Offer Service Entry).
+   Note: Traces to SOME/IP-SD specification sections 4.1.2.1
+   (OfferService entry format) and 4.1.2.3 (Service Entry fields).
+   Covers TC8-SD-001 and TC8-SD-002 from the test strategy.
 
 .. comp_req:: TC8 SD Cyclic Offer Timing
    :id: comp_req__tc8_conformance__sd_cyclic_timing
@@ -126,11 +80,13 @@ Specification (AUTOSAR PRS_SOMEIP_SD).
    :security: NO
    :reqtype: Functional
 
-   The conformance test suite shall verify that, in the main phase, two
-   consecutive OfferService messages of ``someipd`` are ``cyclic_offer_delay``
-   apart within the OA ParamToleranceTime.
+   The conformance test suite shall verify that ``someipd`` repeats
+   OfferService entries at the configured ``cyclic_offer_delay`` interval
+   (±20% tolerance) during the main phase of Service Discovery.
 
-   Note: Traces to OA TC8 SOMEIPSRV_SD_BEHAVIOR_02.
+   Note: Traces to SOME/IP-SD specification section 4.1.1
+   (SD Phases — Main Phase, cyclic offer behavior).
+   Covers TC8-SD-003 from the test strategy.
 
 .. comp_req:: TC8 SD Multicast Response to FindService
    :id: comp_req__tc8_conformance__sd_find_mcast_rsp
@@ -144,12 +100,11 @@ Specification (AUTOSAR PRS_SOMEIP_SD).
    :reqtype: Functional
 
    The conformance test suite shall verify that ``someipd`` answers a
-   FindService with a multicast OfferService, as defined by the OA tests
-   for a FindService received after half of ``cyclic_offer_delay`` and for
-   a FindService with the Unicast Flag cleared.
+   FindService with a multicast OfferService for the specified timing and
+   Unicast Flag conditions.
 
    Note: Traces to OA TC8 SOMEIPSRV_SD_BEHAVIOR_03 and
-   SOMEIPSRV_SD_BEHAVIOR_04.
+   SOMEIPSRV_SD_BEHAVIOR_04; see TC8-SDM-013 and TC8-SDM-014.
 
 .. comp_req:: TC8 SD FindService Response
    :id: comp_req__tc8_conformance__sd_find_response
@@ -166,8 +121,9 @@ Specification (AUTOSAR PRS_SOMEIP_SD).
    a SOME/IP-SD FindService entry with a unicast OfferService for a
    known service, and does not respond for an unknown service.
 
-   Note: Traces to AUTOSAR SOME/IP Service Discovery Protocol
-   Specification R24-11, section 5.1.4.2 (Server Answer Behavior).
+   Note: Traces to SOME/IP-SD specification section 4.1.2.2
+   (FindService entry handling and response behavior).
+   Covers TC8-SD-004 and TC8-SD-005 from the test strategy.
 
 .. comp_req:: TC8 SD Subscribe Eventgroup Lifecycle
    :id: comp_req__tc8_conformance__sd_sub_lifecycle
@@ -183,15 +139,13 @@ Specification (AUTOSAR PRS_SOMEIP_SD).
    The conformance test suite shall verify that ``someipd`` correctly
    handles the SubscribeEventgroup lifecycle: acknowledge valid
    subscriptions (SubscribeEventgroupAck), reject unknown eventgroups
-   (SubscribeEventgroupNack with TTL=0), honor StopSubscribeEventgroup
-   by ceasing notifications, and clean up expired subscriptions after
-   the subscription TTL elapses.
+   (SubscribeEventgroupNack with TTL=0), and honor StopSubscribeEventgroup
+   by ceasing notifications.
 
-   Note: Traces to AUTOSAR SOME/IP Service Discovery Protocol
-   Specification R24-11, sections 5.1.3.1.1 (Subscribe Eventgroup
-   Entry, including TTL), 5.1.3.1.2 (Stop Subscribe Eventgroup
-   Entry), 5.1.3.1.3 (Subscribe Eventgroup Acknowledgement), and
-   5.1.3.1.4 (Subscribe Eventgroup Negative Acknowledgement).
+   Note: Traces to SOME/IP-SD specification sections 4.1.2.4
+   (SubscribeEventgroup), 4.1.2.5 (StopSubscribeEventgroup),
+   and 4.1.2.6 (SubscribeEventgroupAck/Nack).
+   Covers TC8-SD-006, TC8-SD-007, and TC8-SD-008 from the test strategy.
 
 .. comp_req:: TC8 SD Subscription TTL Expiry
    :id: comp_req__tc8_conformance__sd_ttl_expiry
@@ -204,10 +158,9 @@ Specification (AUTOSAR PRS_SOMEIP_SD).
    :security: NO
    :reqtype: Functional
 
-   The conformance test suite shall verify that event notifications cease to arrive
-   after the subscription TTL expires: when a tester subscribes with TTL = 3 and no
-   renewal is sent, no further SOME/IP notifications shall be received beyond 2 seconds
-   after the TTL expiry, conforming to OA TC8 SOMEIP_ETS_095.
+   The conformance test suite shall verify that event notifications cease
+   after a subscription expires without renewal, conforming to
+   OA TC8 SOMEIP_ETS_095.
 
 .. comp_req:: TC8 SD Initial Delay and Repetitions Phase
    :id: comp_req__tc8_conformance__sd_phases_timing
@@ -220,15 +173,14 @@ Specification (AUTOSAR PRS_SOMEIP_SD).
    :security: NO
    :reqtype: Functional
 
-   The conformance test suite shall verify that ``someipd`` doubles the
-   delay between offers in the Repetition Phase: the first gap is shorter
-   than half of ``cyclic_offer_delay`` and the second gap is twice
-   ``repetitions_base_delay`` within the OA tolerance.
+   The conformance test suite shall verify that ``someipd`` observes
+   the three SD phases: initial wait delay within ``[initial_delay_min,
+   initial_delay_max]``, repetition of offers ``repetitions_max`` times
+   at ``repetitions_base_delay`` intervals, and transition to main phase.
 
-   Note: Traces to OA TC8 SOMEIPSRV_SD_BEHAVIOR_01 (Repetition Phase
-   delay doubling). The offer count (``repetitions_max``), the initial
-   wait delay and the main phase transition are not defined by this OA
-   test and are out of scope.
+   Note: Traces to SOME/IP-SD specification section 4.1.1
+   (SD Phases — Initial Wait, Repetition, Main Phase).
+   Covers TC8-SD-009 and TC8-SD-010 from the test strategy.
 
 .. comp_req:: TC8 SD IPv4 Endpoint Option Validation
    :id: comp_req__tc8_conformance__sd_endpoint_option
@@ -241,13 +193,13 @@ Specification (AUTOSAR PRS_SOMEIP_SD).
    :security: NO
    :reqtype: Functional
 
-   The conformance test suite shall verify that ``someipd`` includes
-   a valid IPv4EndpointOption in OfferService SD entries, carrying the
-   correct unicast address, port, and L4 protocol (UDP) so that clients
-   can reach the offered service.
+   The conformance test suite shall verify that ``someipd`` includes a valid
+   IPv4EndpointOption in OfferService SD entries, carrying the correct
+   unicast address, port, and L4 protocol so clients can reach the offered
+   service.
 
-   Note: Traces to AUTOSAR SOME/IP Service Discovery Protocol
-   Specification R24-11, section 5.1.2.4.3 (IPv4 Endpoint Option).
+   Note: Traces to AUTOSAR SOME/IP-SD Protocol Specification R24-11,
+   section 5.1.2.4.3 (IPv4 Endpoint Option); see TC8-SD-011.
 
 .. comp_req:: TC8 SD Reboot Detection
    :id: comp_req__tc8_conformance__sd_reboot
@@ -260,16 +212,12 @@ Specification (AUTOSAR PRS_SOMEIP_SD).
    :security: NO
    :reqtype: Functional
 
-   The conformance test suite shall verify that ``someipd`` resets its
-   SD state upon restart: the reboot flag (SD flags byte bit 7) shall
-   be set in the first SD message after restart, and the SD session ID
-   shall reset to a low value (≤ 2). It shall also verify that
-   ``someipd`` detects the reboot of a peer, shown by the reboot flag
-   set and a lower Session ID.
+   The conformance test suite shall verify that ``someipd`` sets the reboot
+   flag and resets its SD session ID after restart, and detects a peer reboot
+   through the reboot flag and a lower session ID.
 
-   Note: Traces to AUTOSAR SOME/IP Service Discovery Protocol
-   Specification R24-11, section 5.1.2.2 (SOME/IP-SD Header, Reboot
-   Flag and Session ID handling).
+   Note: Traces to SOME/IP-SD Header reboot flag and Session ID handling;
+   see TC8-SDLC-015 and TC8-SDLC-016.
 
 .. comp_req:: TC8 SD Multicast Eventgroup Option
    :id: comp_req__tc8_conformance__sd_mcast_eg
@@ -282,16 +230,14 @@ Specification (AUTOSAR PRS_SOMEIP_SD).
    :security: NO
    :reqtype: Functional
 
-   The conformance test suite shall verify that ``someipd`` includes
-   a multicast IPv4EndpointOption in the SubscribeEventgroupAck for
-   eventgroups configured with a multicast address, so that clients
-   know which multicast group to join for event delivery.
+   The conformance test suite shall verify that ``someipd`` includes a
+   multicast IPv4EndpointOption in the SubscribeEventgroupAck for eventgroups
+   configured with a multicast address.
 
-   Note: Traces to AUTOSAR SOME/IP Service Discovery Protocol
-   Specification R24-11, section 5.1.3.1.3 (Subscribe Eventgroup
-   Acknowledgement Entry, multicast endpoint option).
+   Note: Traces to AUTOSAR SOME/IP-SD Protocol Specification R24-11,
+   section 5.1.3.1.3 (Subscribe Eventgroup Acknowledgement); see TC8-SD-013.
 
-Component Requirements: SOME/IP Message Format
+Component Requirements — SOME/IP Message Format
 -----------------------------------------------
 
 .. comp_req:: TC8 SOME/IP Response Header Validation
@@ -310,9 +256,11 @@ Component Requirements: SOME/IP Message Format
    message type (0x80), matching session ID, and matching client ID
    for each received REQUEST.
 
-   Note: Traces to AUTOSAR SOME/IP Protocol Specification R24-11, sections
-   4.1.2.5 (Protocol Version), 4.1.2.7 (Message Type), and 4.1.2.4
-   (Request ID, Client ID / Session ID).
+   Note: Traces to SOME/IP specification sections 4.1.4
+   (Protocol Version), 4.1.6 (Message Type), and 4.1.3 (Request ID —
+   Client ID / Session ID). Covers TC8-SOMEIP-MSG-001,
+   TC8-SOMEIP-MSG-002, TC8-SOMEIP-MSG-005, and TC8-SOMEIP-MSG-008
+   from the test strategy.
 
 .. comp_req:: TC8 SOME/IP Error Return Codes
    :id: comp_req__tc8_conformance__msg_error_codes
@@ -331,11 +279,11 @@ Component Requirements: SOME/IP Message Format
    ``E_UNKNOWN_METHOD`` (0x03) for invalid method IDs, and
    ``E_WRONG_INTERFACE_VERSION`` for interface version mismatches.
 
-   Note: Traces to AUTOSAR SOME/IP Protocol Specification R24-11, section
-   4.1.2.8 (Return Code) and section 4.2.6.1 (Return Codes,
-   requirement PRS_SOMEIP_00191).
+   Note: Traces to SOME/IP specification section 4.1.7 (Return Code)
+   and the return code table (Table 4.14). Covers TC8-SOMEIP-MSG-003,
+   TC8-SOMEIP-MSG-004, and TC8-SOMEIP-MSG-006 from the test strategy.
 
-Component Requirements: Event Notification
+Component Requirements — Event Notification
 -------------------------------------------
 
 .. comp_req:: TC8 Event Notification Subscription Lifecycle
@@ -354,7 +302,74 @@ Component Requirements: Event Notification
    only to endpoints with an active eventgroup subscription, and ceases
    delivery after StopSubscribeEventgroup.
 
-   Note: Traces to AUTOSAR SOME/IP Protocol Specification R24-11, section
-   4.2.4 (Notification Events), and AUTOSAR SOME/IP Service Discovery
-   Protocol Specification R24-11, section 5.1.3.1.1 (Subscribe
-   Eventgroup Entry).
+   Note: Traces to SOME/IP specification section 5.1 (Events) and
+   SOME/IP-SD section 4.1.2.4 (SubscribeEventgroup triggering
+   notification delivery). Covers TC8-EVT-001 through TC8-EVT-004
+   and TC8-EVT-006 from the test strategy.
+
+Traceability Summary
+--------------------
+
+The following table links each component requirement to the SOME/IP
+specification section it verifies.
+
+.. list-table:: TC8 Requirement Traceability Matrix
+   :widths: 30 20 30 20
+   :header-rows: 1
+
+   * - Requirement ID
+     - TC8 Test IDs
+     - SOME/IP Spec Reference
+     - Safety
+   * - ``comp_req__tc8_conformance__sd_offer_format``
+     - TC8-SD-001, -002
+     - SOME/IP-SD §4.1.2.1, §4.1.2.3
+     - QM
+   * - ``comp_req__tc8_conformance__sd_cyclic_timing``
+     - TC8-SD-003
+     - SOME/IP-SD §4.1.1 (Main Phase)
+     - QM
+    * - ``comp_req__tc8_conformance__sd_find_mcast_rsp``
+       - TC8-SDM-013, TC8-SDM-014
+       - SOMEIPSRV_SD_BEHAVIOR_03, SOMEIPSRV_SD_BEHAVIOR_04
+       - QM
+   * - ``comp_req__tc8_conformance__sd_find_response``
+     - TC8-SD-004, -005
+     - SOME/IP-SD §4.1.2.2
+     - QM
+   * - ``comp_req__tc8_conformance__sd_sub_lifecycle``
+     - TC8-SD-006, -007, -008
+     - SOME/IP-SD §4.1.2.4–4.1.2.6
+     - QM
+    * - ``comp_req__tc8_conformance__sd_ttl_expiry``
+       - TC8-SDLC-019
+       - SOMEIP_ETS_095
+       - QM
+   * - ``comp_req__tc8_conformance__sd_phases_timing``
+     - TC8-SD-009, -010
+     - SOME/IP-SD §4.1.1 (Phases)
+     - QM
+    * - ``comp_req__tc8_conformance__sd_endpoint_option``
+       - TC8-SD-011
+       - SOMEIPSRV_OPTIONS_01-07; SOMEIPSRV_SD_MESSAGE_08
+       - QM
+    * - ``comp_req__tc8_conformance__sd_mcast_eg``
+       - TC8-SD-013
+       - SOMEIPSRV_OPTIONS_08-14
+       - QM
+    * - ``comp_req__tc8_conformance__sd_reboot``
+       - TC8-SDLC-015, TC8-SDLC-016
+       - SOMEIPSRV_FORMAT_07, SOMEIPSRV_FORMAT_02
+       - QM
+   * - ``comp_req__tc8_conformance__msg_resp_header``
+     - TC8-MSG-001, -002, -005, -008
+     - SOME/IP §4.1.3, §4.1.4, §4.1.6
+     - QM
+   * - ``comp_req__tc8_conformance__msg_error_codes``
+     - TC8-MSG-003, -004, -006
+     - SOME/IP §4.1.7 (Table 4.14)
+     - QM
+   * - ``comp_req__tc8_conformance__evt_subscription``
+     - TC8-EVT-001–004, -006
+     - SOME/IP §5.1, SOME/IP-SD §4.1.2.4
+     - QM
