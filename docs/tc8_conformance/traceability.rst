@@ -44,6 +44,33 @@ The following tables link each OA TC8 specification test case to the
 project's internal test ID and component requirement. All requirement
 IDs use the ``comp_req__tc8_conformance__`` prefix (omitted for brevity).
 
+Requirement Chain
+-----------------
+
+Open SOME/IP requirement identifiers are imported without their licensed
+requirement wording. The local feature requirements derive from selected
+imported IDs, TC8 component requirements derive from those feature requirements,
+and test decorators link testcases to component requirements. The chain is:
+
+``Open SOME/IP ID -> local feature requirement -> TC8 component requirement -> testcase``
+
+The import is pinned to Open SOME/IP Specification version 25-12 at commit
+``4860461802c23f41c6227befcb25cc80e7d68771``. The original requirement wording
+remains at the `official upstream source
+<https://github.com/some-ip-com/open-someip-spec>`_.
+The import contains 638 identifiers; the selected IDs below define the local
+mapping scope, not proof that each is covered by a testcase. Uncovered and
+partially covered cases are called out in the component requirement trace.
+
+The table below shows the imported requirement IDs selected for each local
+feature requirement. Source-line links are available from the imported IDs.
+
+.. needtable:: Local feature requirements and their Open SOME/IP sources
+    :types: feat_req
+    :filter: id.startswith("feat_req__someip_gateway__")
+    :columns: id;title;derived_from
+    :style: table
+
 Service Discovery
 ^^^^^^^^^^^^^^^^^
 
@@ -467,3 +494,8 @@ Tests that skip or error during setup do not get a results link today, because
 of an upstream ``score_tooling`` 2.1.1 limitation in its pytest results
 plugin, so a requirement verified only by a skip marked test shows no linked
 test results.
+
+The following component requirements currently have no testcase decorator
+link and therefore must not be interpreted as tested: ``msg_resp_header``,
+``msg_error_codes``, and ``evt_subscription``. Partial links and known gaps
+for Service Discovery are documented with their component requirements.

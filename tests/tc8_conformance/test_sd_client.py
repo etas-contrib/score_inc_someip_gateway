@@ -103,7 +103,7 @@ class TestSDClientReboot:
     """FORMAT_07 and FORMAT_02: DUT reboot flag and session ID after restarts."""
 
     @add_test_properties(
-        fully_verifies=["comp_req__tc8_conformance__sd_reboot"],
+        partially_verifies=["comp_req__tc8_conformance__sd_reboot"],
         test_type="requirements-based",
         derivation_technique="requirements-analysis",
     )
@@ -170,7 +170,7 @@ class TestSDClientReboot:
         )
 
     @add_test_properties(
-        fully_verifies=["comp_req__tc8_conformance__sd_reboot"],
+        partially_verifies=["comp_req__tc8_conformance__sd_reboot"],
         test_type="requirements-based",
         derivation_technique="requirements-analysis",
     )

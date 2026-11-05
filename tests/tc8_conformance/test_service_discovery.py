@@ -1023,7 +1023,7 @@ class TestSDFindServiceTiming:
     """SOMEIPSRV_SD_BEHAVIOR_03-04: FindService answered with a multicast OfferService."""
 
     @add_test_properties(
-        fully_verifies=["comp_req__tc8_conformance__sd_find_mcast_rsp"],
+        partially_verifies=["comp_req__tc8_conformance__sd_find_mcast_rsp"],
         test_type="requirements-based",
         derivation_technique="requirements-analysis",
     )
@@ -1062,7 +1062,7 @@ class TestSDFindServiceTiming:
         )
 
     @add_test_properties(
-        fully_verifies=["comp_req__tc8_conformance__sd_find_mcast_rsp"],
+        partially_verifies=["comp_req__tc8_conformance__sd_find_mcast_rsp"],
         test_type="requirements-based",
         derivation_technique="requirements-analysis",
     )

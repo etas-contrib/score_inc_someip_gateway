@@ -184,7 +184,7 @@ class TestEts087:
 class TestEts093:
     # No application-only fix: the application cannot send initial events on subscription.
     @add_test_properties(
-        fully_verifies=["comp_req__tc8_conformance__sd_reboot"],
+        partially_verifies=["comp_req__tc8_conformance__sd_reboot"],
         test_type="requirements-based",
         derivation_technique="requirements-analysis",
     )

@@ -54,7 +54,7 @@ Specification (AUTOSAR PRS_SOMEIP_SD).
    :status: valid
    :version: 1
    :tags: tc8, conformance, service_discovery
-   :derived_from: feat_req__tc8_conformance__conformance
+   :derived_from: feat_req__someip_gateway__sd_offer
    :satisfied_by: comp__someipd
    :safety: QM
    :security: NO
@@ -74,7 +74,7 @@ Specification (AUTOSAR PRS_SOMEIP_SD).
    :status: valid
    :version: 1
    :tags: tc8, conformance, service_discovery, timing
-   :derived_from: feat_req__tc8_conformance__conformance
+   :derived_from: feat_req__someip_gateway__sd_cyclic_offer
    :satisfied_by: comp__someipd
    :safety: QM
    :security: NO
@@ -93,7 +93,7 @@ Specification (AUTOSAR PRS_SOMEIP_SD).
    :status: valid
    :version: 1
    :tags: tc8, conformance, service_discovery, timing
-   :derived_from: feat_req__tc8_conformance__conformance
+   :derived_from: feat_req__someip_gateway__sd_find_service
    :satisfied_by: comp__someipd
    :safety: QM
    :security: NO
@@ -111,26 +111,28 @@ Specification (AUTOSAR PRS_SOMEIP_SD).
    :status: valid
    :version: 1
    :tags: tc8, conformance, service_discovery
-   :derived_from: feat_req__tc8_conformance__conformance
+   :derived_from: feat_req__someip_gateway__sd_find_service
    :satisfied_by: comp__someipd
    :safety: QM
    :security: NO
    :reqtype: Functional
 
    The conformance test suite shall verify that ``someipd`` responds to
-   a SOME/IP-SD FindService entry with a unicast OfferService for a
-   known service, and does not respond for an unknown service.
+   a SOME/IP-SD FindService entry for a known service with a unicast
+   OfferService. The unknown-service no-response case is not currently
+   covered by a linked test.
 
    Note: Traces to SOME/IP-SD specification section 4.1.2.2
    (FindService entry handling and response behavior).
-   Covers TC8-SD-004 and TC8-SD-005 from the test strategy.
+   Covers known-service response behavior. TC8-SD-005 (unknown service)
+   remains an unverified case.
 
 .. comp_req:: TC8 SD Subscribe Eventgroup Lifecycle
    :id: comp_req__tc8_conformance__sd_sub_lifecycle
    :status: valid
    :version: 1
    :tags: tc8, conformance, service_discovery, eventgroup
-   :derived_from: feat_req__tc8_conformance__conformance
+   :derived_from: feat_req__someip_gateway__sd_eventgroup_lifecycle
    :satisfied_by: comp__someipd
    :safety: QM
    :security: NO
@@ -152,7 +154,7 @@ Specification (AUTOSAR PRS_SOMEIP_SD).
    :status: valid
    :version: 1
    :tags: tc8, conformance, service_discovery, eventgroup, timing
-   :derived_from: feat_req__tc8_conformance__conformance
+   :derived_from: feat_req__someip_gateway__sd_eventgroup_lifecycle
    :satisfied_by: comp__someipd
    :safety: QM
    :security: NO
@@ -167,27 +169,26 @@ Specification (AUTOSAR PRS_SOMEIP_SD).
    :status: valid
    :version: 1
    :tags: tc8, conformance, service_discovery, timing
-   :derived_from: feat_req__tc8_conformance__conformance
+   :derived_from: feat_req__someip_gateway__sd_phase_timing
    :satisfied_by: comp__someipd
    :safety: QM
    :security: NO
    :reqtype: Functional
 
-   The conformance test suite shall verify that ``someipd`` observes
-   the three SD phases: initial wait delay within ``[initial_delay_min,
-   initial_delay_max]``, repetition of offers ``repetitions_max`` times
-   at ``repetitions_base_delay`` intervals, and transition to main phase.
+   The conformance test suite shall verify the configured repetition-phase
+   OfferService intervals. Initial-wait bounds, repetition count, and the
+   transition to main phase are not currently covered by a linked test.
 
    Note: Traces to SOME/IP-SD specification section 4.1.1
    (SD Phases — Initial Wait, Repetition, Main Phase).
-   Covers TC8-SD-009 and TC8-SD-010 from the test strategy.
+   Partially covers TC8-SD-009; TC8-SD-010 remains unverified.
 
 .. comp_req:: TC8 SD IPv4 Endpoint Option Validation
    :id: comp_req__tc8_conformance__sd_endpoint_option
    :status: valid
    :version: 1
    :tags: tc8, conformance, service_discovery
-   :derived_from: feat_req__tc8_conformance__conformance
+   :derived_from: feat_req__someip_gateway__sd_endpoint_options
    :satisfied_by: comp__someipd
    :safety: QM
    :security: NO
@@ -206,7 +207,7 @@ Specification (AUTOSAR PRS_SOMEIP_SD).
    :status: valid
    :version: 1
    :tags: tc8, conformance, service_discovery, reboot
-   :derived_from: feat_req__tc8_conformance__conformance
+   :derived_from: feat_req__someip_gateway__sd_reboot_handling
    :satisfied_by: comp__someipd
    :safety: QM
    :security: NO
@@ -224,14 +225,14 @@ Specification (AUTOSAR PRS_SOMEIP_SD).
    :status: valid
    :version: 1
    :tags: tc8, conformance, service_discovery, multicast
-   :derived_from: feat_req__tc8_conformance__conformance
+   :derived_from: feat_req__someip_gateway__sd_multicast_eventgroup
    :satisfied_by: comp__someipd
    :safety: QM
    :security: NO
    :reqtype: Functional
 
-   The conformance test suite shall verify that ``someipd`` includes a
-   multicast IPv4EndpointOption in the SubscribeEventgroupAck for eventgroups
+   The conformance test suite shall verify that ``someipd`` includes an
+   IPv4 Multicast Option in the SubscribeEventgroupAck for eventgroups
    configured with a multicast address.
 
    Note: Traces to AUTOSAR SOME/IP-SD Protocol Specification R24-11,
@@ -245,7 +246,7 @@ Component Requirements — SOME/IP Message Format
    :status: valid
    :version: 1
    :tags: tc8, conformance, message_format
-   :derived_from: feat_req__tc8_conformance__conformance
+   :derived_from: feat_req__someip_gateway__response_messages
    :satisfied_by: comp__someipd
    :safety: QM
    :security: NO
@@ -267,7 +268,7 @@ Component Requirements — SOME/IP Message Format
    :status: valid
    :version: 1
    :tags: tc8, conformance, message_format, error_handling
-   :derived_from: feat_req__tc8_conformance__conformance
+   :derived_from: feat_req__someip_gateway__error_return_codes
    :satisfied_by: comp__someipd
    :safety: QM
    :security: NO
@@ -291,7 +292,7 @@ Component Requirements — Event Notification
    :status: valid
    :version: 1
    :tags: tc8, conformance, events, notification
-   :derived_from: feat_req__tc8_conformance__conformance
+   :derived_from: feat_req__someip_gateway__event_notification_delivery
    :satisfied_by: comp__someipd
    :safety: QM
    :security: NO
@@ -310,66 +311,20 @@ Component Requirements — Event Notification
 Traceability Summary
 --------------------
 
-The following table links each component requirement to the SOME/IP
-specification section it verifies.
+The table records whether testcase decorators currently link to each
+component requirement. It does not report test execution results; those are
+shown in ``traceability.rst`` when a test run is available.
 
-.. list-table:: TC8 Requirement Traceability Matrix
-   :widths: 30 20 30 20
-   :header-rows: 1
-
-   * - Requirement ID
-     - TC8 Test IDs
-     - SOME/IP Spec Reference
-     - Safety
-   * - ``comp_req__tc8_conformance__sd_offer_format``
-     - TC8-SD-001, -002
-     - SOME/IP-SD §4.1.2.1, §4.1.2.3
-     - QM
-   * - ``comp_req__tc8_conformance__sd_cyclic_timing``
-     - TC8-SD-003
-     - SOME/IP-SD §4.1.1 (Main Phase)
-     - QM
-    * - ``comp_req__tc8_conformance__sd_find_mcast_rsp``
-       - TC8-SDM-013, TC8-SDM-014
-       - SOMEIPSRV_SD_BEHAVIOR_03, SOMEIPSRV_SD_BEHAVIOR_04
-       - QM
-   * - ``comp_req__tc8_conformance__sd_find_response``
-     - TC8-SD-004, -005
-     - SOME/IP-SD §4.1.2.2
-     - QM
-   * - ``comp_req__tc8_conformance__sd_sub_lifecycle``
-     - TC8-SD-006, -007, -008
-     - SOME/IP-SD §4.1.2.4–4.1.2.6
-     - QM
-    * - ``comp_req__tc8_conformance__sd_ttl_expiry``
-       - TC8-SDLC-019
-       - SOMEIP_ETS_095
-       - QM
-   * - ``comp_req__tc8_conformance__sd_phases_timing``
-     - TC8-SD-009, -010
-     - SOME/IP-SD §4.1.1 (Phases)
-     - QM
-    * - ``comp_req__tc8_conformance__sd_endpoint_option``
-       - TC8-SD-011
-       - SOMEIPSRV_OPTIONS_01-07; SOMEIPSRV_SD_MESSAGE_08
-       - QM
-    * - ``comp_req__tc8_conformance__sd_mcast_eg``
-       - TC8-SD-013
-       - SOMEIPSRV_OPTIONS_08-14
-       - QM
-    * - ``comp_req__tc8_conformance__sd_reboot``
-       - TC8-SDLC-015, TC8-SDLC-016
-       - SOMEIPSRV_FORMAT_07, SOMEIPSRV_FORMAT_02
-       - QM
-   * - ``comp_req__tc8_conformance__msg_resp_header``
-     - TC8-MSG-001, -002, -005, -008
-     - SOME/IP §4.1.3, §4.1.4, §4.1.6
-     - QM
-   * - ``comp_req__tc8_conformance__msg_error_codes``
-     - TC8-MSG-003, -004, -006
-     - SOME/IP §4.1.7 (Table 4.14)
-     - QM
-   * - ``comp_req__tc8_conformance__evt_subscription``
-     - TC8-EVT-001–004, -006
-     - SOME/IP §5.1, SOME/IP-SD §4.1.2.4
-     - QM
+* ``comp_req__tc8_conformance__sd_offer_format`` derives from ``sd_offer`` — linked.
+* ``comp_req__tc8_conformance__sd_cyclic_timing`` derives from ``sd_cyclic_offer`` — linked.
+* ``comp_req__tc8_conformance__sd_find_mcast_rsp`` derives from ``sd_find_service`` — partial; one linked case is expected-failing.
+* ``comp_req__tc8_conformance__sd_find_response`` derives from ``sd_find_service`` — linked; unknown-service case not tested.
+* ``comp_req__tc8_conformance__sd_sub_lifecycle`` derives from ``sd_eventgroup_lifecycle`` — linked.
+* ``comp_req__tc8_conformance__sd_ttl_expiry`` derives from ``sd_eventgroup_lifecycle`` — partially linked.
+* ``comp_req__tc8_conformance__sd_phases_timing`` derives from ``sd_phase_timing`` — partial; initial-wait and main-phase cases missing.
+* ``comp_req__tc8_conformance__sd_endpoint_option`` derives from ``sd_endpoint_options`` — linked.
+* ``comp_req__tc8_conformance__sd_mcast_eg`` derives from ``sd_multicast_eventgroup`` — linked; skipped on loopback environments.
+* ``comp_req__tc8_conformance__sd_reboot`` derives from ``sd_reboot_handling`` — partially linked.
+* ``comp_req__tc8_conformance__msg_resp_header`` derives from ``response_messages`` — no testcase decorator link.
+* ``comp_req__tc8_conformance__msg_error_codes`` derives from ``error_return_codes`` — no testcase decorator link.
+* ``comp_req__tc8_conformance__evt_subscription`` derives from ``event_notification_delivery`` — no testcase decorator link.

@@ -23,7 +23,8 @@ repos:
       - id: check-executables-have-shebangs
       - id: check-added-large-files
         args: [--maxkb=125, --enforce-all] # increase or add git lfs if too strict
-        exclude: MODULE.bazel.lock|tests/benchmarks/benchmarks_analysis.md|score/socom/test/unit/runtime_tests.cpp
+        # Sanitized, pinned requirement metadata; source prose is intentionally absent.
+        exclude: MODULE.bazel.lock|tests/benchmarks/benchmarks_analysis.md|score/socom/test/unit/runtime_tests.cpp|third_party/open_someip_spec/needs.json
 
   - repo: https://github.com/eclipse-score/tools
     rev: 7694bf823421b5542cd2f45239b8bdf205dbface

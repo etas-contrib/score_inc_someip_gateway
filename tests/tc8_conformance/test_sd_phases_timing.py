@@ -105,7 +105,7 @@ class TestSDPhasesTiming:
     """TC8-SD-009: Repetition Phase intervals."""
 
     @add_test_properties(
-        fully_verifies=["comp_req__tc8_conformance__sd_phases_timing"],
+        partially_verifies=["comp_req__tc8_conformance__sd_phases_timing"],
         test_type="requirements-based",
         derivation_technique="requirements-analysis",
     )
