@@ -45,6 +45,11 @@ use_format_targets(
 docs(
     bundles = [
         {
+            "bundle": "//docs_extspec:docs_bundle",
+            "mount_at": "requirements/extspec",
+            "attach_to": "requirements/index",
+        },
+        {
             "bundle": "//score/socom/docs:docs_bundle",
             "mount_at": "socom",
             "attach_to": "components",

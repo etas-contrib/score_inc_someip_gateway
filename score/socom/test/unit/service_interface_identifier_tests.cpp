@@ -46,6 +46,9 @@ class ServiceInterfaceIdentifierTest : public Test {
 using ServiceInterfaceConfigurationDeathTest = ServiceInterfaceIdentifierTest;
 
 TEST_F(ServiceInterfaceIdentifierTest, ConfigurationEqual) {
+    RecordProperty("FullyVerifies", "feat_req__extspec__someipids_529");
+    RecordProperty("TestType", "requirements-based");
+    RecordProperty("DerivationTechnique", "requirements-analysis");
     ASSERT_TRUE(interface_config_1 == interface_config_1);
     ASSERT_FALSE(interface_config_1 == interface_config_2);
 }
