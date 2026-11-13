@@ -21,6 +21,8 @@
 namespace score::socom {
 
 TEST(StringRegistryTest, InsertMultipleStrings) {
+    RecordProperty("TestType", "requirements-based");
+    RecordProperty("DerivationTechnique", "design-analysis");
     String_registry registry;
 
     /// Verify the existence of the type cara::core::util::String_registry interface.
@@ -38,6 +40,8 @@ TEST(StringRegistryTest, InsertMultipleStrings) {
 }
 
 TEST(StringRegistryTest, InsertMultipleStringViews) {
+    RecordProperty("TestType", "requirements-based");
+    RecordProperty("DerivationTechnique", "design-analysis");
     String_registry registry;
     std::string_view const string_view("TestString");
     std::string_view const second_string_view("TestString");
@@ -63,6 +67,8 @@ TEST(StringRegistryTest, InsertMultipleStringViews) {
 }
 
 TEST(StringRegistryTest, InsertMultipleStringViewLiterals) {
+    RecordProperty("TestType", "requirements-based");
+    RecordProperty("DerivationTechnique", "design-analysis");
     String_registry registry;
     std::string_view const string_view("TestStringLiteral");
     std::string_view const second_string_view("TestStringLiteral");
@@ -89,6 +95,8 @@ TEST(StringRegistryTest, InsertMultipleStringViewLiterals) {
 }
 
 TEST(StringRegistryTest, ServiceIDRegistry) {
+    RecordProperty("TestType", "requirements-based");
+    RecordProperty("DerivationTechnique", "design-analysis");
     std::string_view const string_view("TestString");
     // Get a reference to the service ID registry singleton
     String_registry& service_id_registry = score::socom::service_id_registry();
@@ -106,6 +114,8 @@ TEST(StringRegistryTest, ServiceIDRegistry) {
 }
 
 TEST(StringRegistryTest, InstanceIDRegistry) {
+    RecordProperty("TestType", "requirements-based");
+    RecordProperty("DerivationTechnique", "design-analysis");
     std::string_view const string_view("TestString");
     // Get a reference to the instance ID registry singleton
     String_registry& instance_id_registry = score::socom::instance_id_registry();

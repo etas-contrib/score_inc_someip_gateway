@@ -71,6 +71,8 @@ Check_log expect_logs(Expectation const expected_connection,
 }
 
 TEST_P(InterfaceCompatibilityTest, ServerCreatedBeforeClient) {
+    RecordProperty("TestType", "interface-test");
+    RecordProperty("DerivationTechnique", "requirements-analysis");
     auto const& client_conf = std::get<0>(GetParam());
     auto const& server_conf = std::get<1>(GetParam());
     auto const& expected_connection = std::get<2>(GetParam());
@@ -89,6 +91,8 @@ TEST_P(InterfaceCompatibilityTest, ServerCreatedBeforeClient) {
 }
 
 TEST_P(InterfaceCompatibilityTest, ClientCreatedBeforeServer) {
+    RecordProperty("TestType", "interface-test");
+    RecordProperty("DerivationTechnique", "requirements-analysis");
     auto const& client_conf = std::get<0>(GetParam());
     auto const& server_conf = std::get<1>(GetParam());
     auto const& expected_connection = std::get<2>(GetParam());

@@ -17,6 +17,7 @@ and the multi-handle ``_TargetProcess.poll()`` fix. No DUT/QEMU is involved;
 everything here runs against fakes/pure functions.
 """
 
+import pytest
 import ipaddress
 
 import helpers.sd_sender as sd_sender
@@ -33,6 +34,7 @@ from helpers.someip_types import (
 class TestSdSessionIdWraparound:
     """Regression for item 7: session-id must wrap from 0xFFFF to 1, never emit 0x0000."""
 
+    @pytest.mark.test_properties({"TestType": "interface-test", "DerivationTechnique": "error-guessing"})
     def test_no_consecutive_duplicate_across_wraparound(self) -> None:
         sd_sender._last_session_id = 0xFFFE  # noqa: SLF001
         sequence = [sd_sender._next_session_id() for _ in range(5)]  # noqa: SLF001
@@ -41,6 +43,7 @@ class TestSdSessionIdWraparound:
         for a, b in zip(sequence, sequence[1:]):
             assert a != b
 
+    @pytest.mark.test_properties({"TestType": "interface-test", "DerivationTechnique": "error-guessing"})
     def test_reserved_zero_never_emitted(self) -> None:
         sd_sender._last_session_id = 0  # noqa: SLF001
         sequence = [sd_sender._next_session_id() for _ in range(0x10000 + 2)]  # noqa: SLF001
@@ -50,6 +53,7 @@ class TestSdSessionIdWraparound:
 class TestAssertOfferHasIpv4EndpointOptionMixedProtocol:
     """Regression for item 9: must pick the UDP option, not just the first one."""
 
+    @pytest.mark.test_properties({"TestType": "interface-test", "DerivationTechnique": "error-guessing"})
     def test_tcp_before_udp_still_selects_udp(self) -> None:
         # TCP option listed first in options_1, UDP option second: a naive
         # "take options_1[0]" implementation would incorrectly pick the TCP one.
@@ -86,6 +90,7 @@ class TestTargetProcessPollAllHandles:
         def is_running(self) -> bool:
             return self._running
 
+    @pytest.mark.test_properties({"TestType": "interface-test", "DerivationTechnique": "error-guessing"})
     def test_stub_handle_stopped_is_detected(self) -> None:
         # Only the THIRD handle (stub_proc) is stopped; primary and secondary
         # are still running. A poll() that only checked the first handle would
@@ -97,6 +102,7 @@ class TestTargetProcessPollAllHandles:
         )
         assert proc.poll() == 0
 
+    @pytest.mark.test_properties({"TestType": "interface-test", "DerivationTechnique": "error-guessing"})
     def test_secondary_handle_stopped_is_detected(self) -> None:
         proc = _TargetProcess(
             proc=self._FakeAsyncProcess(running=True),
@@ -105,6 +111,7 @@ class TestTargetProcessPollAllHandles:
         )
         assert proc.poll() == 0
 
+    @pytest.mark.test_properties({"TestType": "interface-test", "DerivationTechnique": "error-guessing"})
     def test_all_handles_running_reports_none(self) -> None:
         proc = _TargetProcess(
             proc=self._FakeAsyncProcess(running=True),

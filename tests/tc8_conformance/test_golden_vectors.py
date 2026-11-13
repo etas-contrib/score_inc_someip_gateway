@@ -18,6 +18,7 @@ packet structure. Session-id counters in those modules are reset before each
 call that depends on them, so the golden bytes stay reproducible.
 """
 
+import pytest
 import itertools
 
 import helpers.sd_malformed as sd_malformed
@@ -74,6 +75,7 @@ def _reset_sd_malformed_counter() -> None:
 class TestMessageBuilderGoldenVectors:
     """Golden byte vectors for every public builder in ``message_builder.py``."""
 
+    @pytest.mark.test_properties({"TestType": "interface-test", "DerivationTechnique": "error-guessing"})
     def test_build_request_empty_payload(self) -> None:
         raw = build_request(0x1234, 0x0421, client_id=0x0001, session_id=0x0001, interface_version=1, payload=b"")
         assert raw.hex() == "12340421000000080001000101010000"
@@ -86,6 +88,7 @@ class TestMessageBuilderGoldenVectors:
         assert parsed.message_type == SOMEIPMessageType.REQUEST
         assert parsed.payload == b""
 
+    @pytest.mark.test_properties({"TestType": "interface-test", "DerivationTechnique": "requirements-analysis"})
     def test_build_request_with_payload(self) -> None:
         raw = build_request(
             0x1234,
@@ -103,6 +106,7 @@ class TestMessageBuilderGoldenVectors:
         assert parsed.message_type == SOMEIPMessageType.REQUEST
         assert parsed.payload == b"\xde\xad\xbe\xef"
 
+    @pytest.mark.test_properties({"TestType": "interface-test", "DerivationTechnique": "requirements-analysis"})
     def test_build_request_no_return(self) -> None:
         raw = build_request_no_return(
             0x1234,
@@ -118,12 +122,14 @@ class TestMessageBuilderGoldenVectors:
         assert parsed.message_type == SOMEIPMessageType.REQUEST_NO_RETURN
         assert parsed.payload == b"\x01\x02"
 
+    @pytest.mark.test_properties({"TestType": "interface-test", "DerivationTechnique": "error-guessing"})
     def test_build_truncated_message(self) -> None:
         raw = build_truncated_message()
         # Only 7 bytes are returned, one short of the minimum 8-byte SOME/IP header.
         assert raw.hex() == "12340421000000"
         assert len(raw) == 7
 
+    @pytest.mark.test_properties({"TestType": "interface-test", "DerivationTechnique": "error-guessing"})
     def test_build_wrong_protocol_version_request(self) -> None:
         raw = build_wrong_protocol_version_request(
             0x1234, 0x0421, client_id=0x0001, session_id=0x0001, interface_version=1
@@ -131,11 +137,13 @@ class TestMessageBuilderGoldenVectors:
         # Byte 12 (protocol_version) is patched to 0xff, which is not the valid value 0x01.
         assert raw.hex() == "123404210000000800010001ff010000"
 
+    @pytest.mark.test_properties({"TestType": "interface-test", "DerivationTechnique": "error-guessing"})
     def test_build_oversized_message(self) -> None:
         raw = build_oversized_message(0x1234, 0x0421, client_id=0x0001, session_id=0x0001, interface_version=1)
         # The length field claims 0x7ff3 (32755) payload bytes, but the packet is only 16 bytes long.
         assert raw.hex() == "1234042100007ff30001000101010000"
 
+    @pytest.mark.test_properties({"TestType": "interface-test", "DerivationTechnique": "requirements-analysis"})
     def test_build_notification_as_request(self) -> None:
         raw = build_notification_as_request(
             0x1234,
@@ -153,6 +161,7 @@ class TestMessageBuilderGoldenVectors:
         assert parsed.message_type == SOMEIPMessageType.NOTIFICATION
         assert parsed.payload == b"\xaa"
 
+    @pytest.mark.test_properties({"TestType": "interface-test", "DerivationTechnique": "requirements-analysis"})
     def test_build_request_with_return_code(self) -> None:
         raw = build_request_with_return_code(
             0x1234,
@@ -186,6 +195,7 @@ class TestSdSenderGoldenVectors:
     before the call instead.
     """
 
+    @pytest.mark.test_properties({"TestType": "interface-test", "DerivationTechnique": "requirements-analysis"})
     def test_send_find_service(self) -> None:
         sock = _FakeSocket()
         send_find_service(
@@ -211,6 +221,7 @@ class TestSdSenderGoldenVectors:
         assert entry.major_version == 1
         assert entry.ttl == 3
 
+    @pytest.mark.test_properties({"TestType": "interface-test", "DerivationTechnique": "requirements-analysis"})
     def test_send_subscribe_eventgroup_single_protocol(self) -> None:
         sock = _FakeSocket()
         send_subscribe_eventgroup(
@@ -247,6 +258,7 @@ class TestSdSenderGoldenVectors:
         assert option.port == 30510
         assert option.l4proto == L4Protocols.UDP
 
+    @pytest.mark.test_properties({"TestType": "interface-test", "DerivationTechnique": "requirements-analysis"})
     def test_send_subscribe_eventgroup_mixed_protocol(self) -> None:
         sock = _FakeSocket()
         send_subscribe_eventgroup(
@@ -281,6 +293,7 @@ class TestSdSenderGoldenVectors:
         assert tcp_option.port == 30511
         assert tcp_option.l4proto == L4Protocols.TCP
 
+    @pytest.mark.test_properties({"TestType": "interface-test", "DerivationTechnique": "error-guessing"})
     def test_send_subscribe_eventgroup_reserved_set(self) -> None:
         # Non-deterministic without this reset (finding 1). See module docstring.
         _reset_sd_sender_counter()
@@ -328,6 +341,7 @@ class TestSdSenderWireFormatParsing:
         "000000100000001800090400c0a801320011773000090400c0a801320006772f"
     )
 
+    @pytest.mark.test_properties({"TestType": "interface-test", "DerivationTechnique": "requirements-analysis"})
     def test_parse_single_protocol_subscribe(self) -> None:
         entries = sd_sender._parse_sd_entries(  # noqa: SLF001
             bytes.fromhex(self._WIRE_SUBSCRIBE_SINGLE_HEX)
@@ -345,6 +359,7 @@ class TestSdSenderWireFormatParsing:
         assert option.port == 30510
         assert option.l4proto == L4Protocols.UDP
 
+    @pytest.mark.test_properties({"TestType": "interface-test", "DerivationTechnique": "requirements-analysis"})
     def test_parse_mixed_protocol_subscribe(self) -> None:
         entries = sd_sender._parse_sd_entries(  # noqa: SLF001
             bytes.fromhex(self._WIRE_SUBSCRIBE_MIXED_HEX)
@@ -369,28 +384,34 @@ class TestSdSenderWireFormatParsing:
 class TestSdMalformedPureBuilders:
     """Golden byte vectors for the fully deterministic (no counter) builders."""
 
+    @pytest.mark.test_properties({"TestType": "interface-test", "DerivationTechnique": "error-guessing"})
     def test_build_raw_sd_packet_empty(self) -> None:
         # No entries and no options at all: the shortest possible SD packet.
         pkt = sd_malformed.build_raw_sd_packet(session_id=0x0042)
         assert pkt.hex() == "ffff8100000000140000004201010200c00000000000000000000000"
 
+    @pytest.mark.test_properties({"TestType": "interface-test", "DerivationTechnique": "requirements-analysis"})
     def test_find_service_entry_bytes(self) -> None:
         entry = sd_malformed._find_service_entry_bytes(0x1234)  # noqa: SLF001
         assert entry.hex() == "000000001234ffffff000003ffffffff"
 
+    @pytest.mark.test_properties({"TestType": "interface-test", "DerivationTechnique": "requirements-analysis"})
     def test_subscribe_entry_bytes(self) -> None:
         entry = sd_malformed._subscribe_entry_bytes(0x1234, 0x0001, 0x0010)  # noqa: SLF001
         assert entry.hex() == "06000010123400010000000300000010"
 
+    @pytest.mark.test_properties({"TestType": "interface-test", "DerivationTechnique": "requirements-analysis"})
     def test_endpoint_option_bytes(self) -> None:
         opt = sd_malformed._endpoint_option_bytes("192.168.1.50", 30510)  # noqa: SLF001
         assert opt.hex() == "00090400c0a801320011772e"
 
+    @pytest.mark.test_properties({"TestType": "interface-test", "DerivationTechnique": "error-guessing"})
     def test_unknown_option_bytes(self) -> None:
         # Option type byte 0x77 is not a defined SD option type.
         opt = sd_malformed._unknown_option_bytes(0x77, 4)  # noqa: SLF001
         assert opt.hex() == "0005770000000000"
 
+    @pytest.mark.test_properties({"TestType": "interface-test", "DerivationTechnique": "requirements-analysis"})
     def test_build_raw_sd_packet_with_length_override(self) -> None:
         # The entries length field claims 999 bytes, but the actual entry is only 16 bytes.
         entry = sd_malformed._find_service_entry_bytes(0x1234)  # noqa: SLF001
@@ -416,6 +437,7 @@ class TestSdMalformedSendersGoldenVectors:
     each test resets it immediately before the call.
     """
 
+    @pytest.mark.test_properties({"TestType": "interface-test", "DerivationTechnique": "error-guessing"})
     def test_send_sd_high_session_id(self) -> None:
         # Session id is set close to the 16-bit maximum (0xfffe).
         sock = _FakeSocket()
@@ -426,6 +448,7 @@ class TestSdMalformedSendersGoldenVectors:
             "ffff8100000000240000fffe01010200c000000000000010000000001234ffffff000003ffffffff00000000"
         )
 
+    @pytest.mark.test_properties({"TestType": "interface-test", "DerivationTechnique": "error-guessing"})
     def test_send_sd_empty_entries(self) -> None:
         # The entries array is empty: no service entries at all.
         _reset_sd_malformed_counter()
@@ -433,6 +456,7 @@ class TestSdMalformedSendersGoldenVectors:
         sd_malformed.send_sd_empty_entries(sock, _DEST)
         assert sock.sent[0].hex() == "ffff810000000014000000c801010200c00000000000000000000000"
 
+    @pytest.mark.test_properties({"TestType": "interface-test", "DerivationTechnique": "requirements-analysis"})
     def test_send_sd_find_with_options(self) -> None:
         # The FindService entry references an option, but the spec says options
         # attached to a FindService entry must be ignored.
@@ -444,6 +468,7 @@ class TestSdMalformedSendersGoldenVectors:
             "0000000c00090400c0a801320011772e"
         )
 
+    @pytest.mark.test_properties({"TestType": "interface-test", "DerivationTechnique": "error-guessing"})
     def test_send_sd_entries_length_wrong(self) -> None:
         # The entries array length field claims 999 bytes, but only one 16-byte entry is sent.
         _reset_sd_malformed_counter()
@@ -453,6 +478,7 @@ class TestSdMalformedSendersGoldenVectors:
             "ffff810000000024000000c801010200c0000000000003e7000000001234ffffff000003ffffffff00000000"
         )
 
+    @pytest.mark.test_properties({"TestType": "interface-test", "DerivationTechnique": "error-guessing"})
     def test_send_sd_entry_refs_more_options(self) -> None:
         # The entry claims it has 3 options, but only 1 option is actually in the packet.
         _reset_sd_malformed_counter()
@@ -463,6 +489,7 @@ class TestSdMalformedSendersGoldenVectors:
             "000000100000000c00090400c0a801320011772e"
         )
 
+    @pytest.mark.test_properties({"TestType": "interface-test", "DerivationTechnique": "error-guessing"})
     def test_send_sd_entry_unknown_option_type(self) -> None:
         # The option type byte is 0x77, which is not a known SD option type.
         _reset_sd_malformed_counter()
@@ -472,6 +499,7 @@ class TestSdMalformedSendersGoldenVectors:
             "ffff81000000002c000000c801010200c00000000000001006000010123400010000000300000010000000080005770000000000"
         )
 
+    @pytest.mark.test_properties({"TestType": "interface-test", "DerivationTechnique": "error-guessing"})
     def test_send_sd_entry_same_option_twice(self) -> None:
         # Both entries point at the same option instead of each having their own.
         _reset_sd_malformed_counter()
@@ -482,6 +510,7 @@ class TestSdMalformedSendersGoldenVectors:
             "000010060000101234000100000003000000100000000c00090400c0a801320011772e"
         )
 
+    @pytest.mark.test_properties({"TestType": "interface-test", "DerivationTechnique": "error-guessing"})
     def test_send_sd_option_length_too_long(self) -> None:
         # The option length field claims 0xff bytes, far more than the option itself carries.
         _reset_sd_malformed_counter()
@@ -492,6 +521,7 @@ class TestSdMalformedSendersGoldenVectors:
             "000000100000000c00ff0400c0a801320011772e"
         )
 
+    @pytest.mark.test_properties({"TestType": "interface-test", "DerivationTechnique": "error-guessing"})
     def test_send_sd_option_length_too_short(self) -> None:
         # The option length field is set to 1, too small to hold even the type byte.
         _reset_sd_malformed_counter()
@@ -502,6 +532,7 @@ class TestSdMalformedSendersGoldenVectors:
             "000000100000000c00010400c0a801320011772e"
         )
 
+    @pytest.mark.test_properties({"TestType": "interface-test", "DerivationTechnique": "error-guessing"})
     def test_send_sd_option_length_unaligned(self) -> None:
         # The option length field is 10 instead of the correct 9, one byte off.
         _reset_sd_malformed_counter()
@@ -512,6 +543,7 @@ class TestSdMalformedSendersGoldenVectors:
             "000000100000000c000a0400c0a801320011772e"
         )
 
+    @pytest.mark.test_properties({"TestType": "interface-test", "DerivationTechnique": "error-guessing"})
     def test_send_sd_options_array_length_too_long(self) -> None:
         # The options array length field claims 100 bytes, but only 12 bytes of option data
         # are actually sent.
@@ -523,6 +555,7 @@ class TestSdMalformedSendersGoldenVectors:
             "000000100000006400090400c0a801320011772e"
         )
 
+    @pytest.mark.test_properties({"TestType": "interface-test", "DerivationTechnique": "error-guessing"})
     def test_send_sd_options_array_length_too_short(self) -> None:
         # The options array length field claims only 2 bytes, but 12 bytes of option data
         # are actually sent.
@@ -534,6 +567,7 @@ class TestSdMalformedSendersGoldenVectors:
             "000000100000000200090400c0a801320011772e"
         )
 
+    @pytest.mark.test_properties({"TestType": "interface-test", "DerivationTechnique": "error-guessing"})
     def test_send_sd_subscribe_empty_options(self) -> None:
         # The subscribe entry has empty Options Array.
         _reset_sd_malformed_counter()
@@ -543,6 +577,7 @@ class TestSdMalformedSendersGoldenVectors:
             "ffff810000000024000000c801010200c0000000000000100600000012340001010000030000001000000000"
         )
 
+    @pytest.mark.test_properties({"TestType": "interface-test", "DerivationTechnique": "error-guessing"})
     def test_send_sd_subscribe_zero_ip(self) -> None:
         # The endpoint option address is 0.0.0.0, which is not a usable address.
         _reset_sd_malformed_counter()
@@ -553,6 +588,7 @@ class TestSdMalformedSendersGoldenVectors:
             "000000100000000c00090400000000000011772e"
         )
 
+    @pytest.mark.test_properties({"TestType": "interface-test", "DerivationTechnique": "error-guessing"})
     def test_send_sd_subscribe_wrong_l4proto(self) -> None:
         # The l4proto byte is 0x00, which is neither UDP (0x11) nor TCP (0x06).
         _reset_sd_malformed_counter()
@@ -565,6 +601,7 @@ class TestSdMalformedSendersGoldenVectors:
             "000000100000000c00090400c0a801320000772e"
         )
 
+    @pytest.mark.test_properties({"TestType": "interface-test", "DerivationTechnique": "error-guessing"})
     def test_send_sd_subscribe_reserved_option(self) -> None:
         # The option type byte is 0x20, a reserved value the DUT should not see in practice.
         _reset_sd_malformed_counter()
@@ -575,6 +612,7 @@ class TestSdMalformedSendersGoldenVectors:
             "000000100000000c000920000000000000000000"
         )
 
+    @pytest.mark.test_properties({"TestType": "interface-test", "DerivationTechnique": "error-guessing"})
     def test_send_sd_wrong_someip_length(self) -> None:
         # The SOME/IP length field is patched to 999, which does not match the actual packet size.
         _reset_sd_malformed_counter()
@@ -584,6 +622,7 @@ class TestSdMalformedSendersGoldenVectors:
             "ffff8100000003e7000000c801010200c000000000000010000000001234ffffff000003ffffffff00000000"
         )
 
+    @pytest.mark.test_properties({"TestType": "interface-test", "DerivationTechnique": "error-guessing"})
     def test_send_sd_wrong_someip_message_id(self) -> None:
         # A subscribe whose SOME/IP Method ID is changed from the SD value 0x8100 to 0x8101.
         _reset_sd_malformed_counter()
@@ -593,6 +632,7 @@ class TestSdMalformedSendersGoldenVectors:
             "ffff810100000030000000c801010200c000000000000010060000101234567801000003000000020000000c00090400c0a8010a00117530"
         )
 
+    @pytest.mark.test_properties({"TestType": "interface-test", "DerivationTechnique": "error-guessing"})
     def test_send_sd_truncated_entry(self) -> None:
         # The entry is cut to 8 bytes, half of the required 16 bytes.
         _reset_sd_malformed_counter()
@@ -600,6 +640,7 @@ class TestSdMalformedSendersGoldenVectors:
         sd_malformed.send_sd_truncated_entry(sock, _DEST, 0x1234)
         assert sock.sent[0].hex() == ("ffff81000000001c000000c801010200c000000000000010000000001234ffff00000000")
 
+    @pytest.mark.test_properties({"TestType": "interface-test", "DerivationTechnique": "error-guessing"})
     def test_send_sd_oversized_entries_length(self) -> None:
         # The entries length field claims 0xffff bytes, far more than the actual packet.
         _reset_sd_malformed_counter()
@@ -609,6 +650,7 @@ class TestSdMalformedSendersGoldenVectors:
             "ffff810000000024000000c801010200c00000000000ffff000000001234ffffff000003ffffffff00000000"
         )
 
+    @pytest.mark.test_properties({"TestType": "interface-test", "DerivationTechnique": "error-guessing"})
     def test_send_sd_empty_option(self) -> None:
         # The option length field is set to 1, too short to be a valid option.
         _reset_sd_malformed_counter()
@@ -619,6 +661,7 @@ class TestSdMalformedSendersGoldenVectors:
             "000000100000000c000104000000000000000000"
         )
 
+    @pytest.mark.test_properties({"TestType": "interface-test", "DerivationTechnique": "error-guessing"})
     def test_send_sd_subscribe_nonexistent_service(self) -> None:
         # The subscribe is for service id 0x9999, which the DUT does not offer.
         _reset_sd_malformed_counter()

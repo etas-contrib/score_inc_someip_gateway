@@ -11,26 +11,30 @@
 # SPDX-License-Identifier: Apache-2.0
 # *******************************************************************************
 
+import os
 from pathlib import Path
 import signal
 import subprocess
-import sys
 import unittest
+
+import pytest
 
 from quality.pytest.process import stop_process, wait_for_output
 
 
 class SomeipdTest(unittest.TestCase):
     def setUp(self) -> None:
-        self.binary = Path(sys.argv[1])
-        self.service_instance_manifest = Path(sys.argv[2])
+        self.binary = Path(os.environ["SOMEIPD"])
+        self.service_instance_manifest = Path(os.environ["SERVICE_INSTANCE_MANIFEST"])
 
+    @pytest.mark.test_properties({"TestType": "interface-test", "DerivationTechnique": "design-analysis"})
     def test_help_returns_success_and_prints_usage(self) -> None:
         result = subprocess.run([self.binary, "--help"], capture_output=True, check=False, text=True)
 
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("Syntax: someipd -h/--help", result.stdout)
 
+    @pytest.mark.test_properties({"TestType": "interface-test", "DerivationTechnique": "design-analysis"})
     def test_sigterm_and_sigint_exit_with_success(self) -> None:
         for shutdown_signal in (signal.SIGTERM, signal.SIGINT):
             with self.subTest(signal=shutdown_signal.name):
@@ -59,4 +63,4 @@ class SomeipdTest(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    _ = unittest.main(argv=[sys.argv[0]])
+    _ = unittest.main()

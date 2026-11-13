@@ -46,11 +46,15 @@ class ServiceInterfaceIdentifierTest : public Test {
 using ServiceInterfaceConfigurationDeathTest = ServiceInterfaceIdentifierTest;
 
 TEST_F(ServiceInterfaceIdentifierTest, ConfigurationEqual) {
+    RecordProperty("TestType", "requirements-based");
+    RecordProperty("DerivationTechnique", "equivalence-classes");
     ASSERT_TRUE(interface_config_1 == interface_config_1);
     ASSERT_FALSE(interface_config_1 == interface_config_2);
 }
 
 TEST_F(ServiceInterfaceIdentifierTest, LiteratorConstructorUsesStringView) {
+    RecordProperty("TestType", "requirements-based");
+    RecordProperty("DerivationTechnique", "design-analysis");
     String_registry registry;
     auto const registry_string_view = registry.insert(service_interface_id).first;
 
@@ -61,6 +65,8 @@ TEST_F(ServiceInterfaceIdentifierTest, LiteratorConstructorUsesStringView) {
 }
 
 TEST_F(ServiceInterfaceIdentifierTest, StringConstructorUsesStringView) {
+    RecordProperty("TestType", "requirements-based");
+    RecordProperty("DerivationTechnique", "design-analysis");
     auto const interface =
         Service_interface_identifier{std::string(service_interface_id), service_interface_version};
     EXPECT_EQ(interface.id.string_view(), service_interface_id);
@@ -71,6 +77,8 @@ TEST_F(ServiceInterfaceIdentifierTest, StringConstructorUsesStringView) {
 }
 
 TEST_F(ServiceInterfaceIdentifierTest, StringViewConstructorUsesStringView) {
+    RecordProperty("TestType", "requirements-based");
+    RecordProperty("DerivationTechnique", "design-analysis");
     auto const interface =
         Service_interface_identifier{service_interface_id, service_interface_version};
     EXPECT_EQ(interface.id.string_view(), service_interface_id);
@@ -81,6 +89,8 @@ TEST_F(ServiceInterfaceIdentifierTest, StringViewConstructorUsesStringView) {
 }
 
 TEST_F(ServiceInterfaceIdentifierTest, StringViewLiteralConstructorUsesStringView) {
+    RecordProperty("TestType", "requirements-based");
+    RecordProperty("DerivationTechnique", "design-analysis");
     auto const interface = Service_interface_identifier{service_interface_id, Literal_tag{},
                                                         service_interface_version};
     EXPECT_EQ(interface.id.string_view(), service_interface_id);
@@ -91,10 +101,14 @@ TEST_F(ServiceInterfaceIdentifierTest, StringViewLiteralConstructorUsesStringVie
 }
 
 TEST_F(ServiceInterfaceConfigurationDeathTest, SameInterfaceDifferentNumMethodsAsserts) {
+    RecordProperty("TestType", "fault-injection");
+    RecordProperty("DerivationTechnique", "error-guessing");
     EXPECT_DEATH((void)(interface_config_1 == interface_config_3), "");
 }
 
 TEST_F(ServiceInterfaceConfigurationDeathTest, SameInterfaceDifferentNumEventsAsserts) {
+    RecordProperty("TestType", "fault-injection");
+    RecordProperty("DerivationTechnique", "error-guessing");
     EXPECT_DEATH((void)(interface_config_1 == interface_config_4), "");
 }
 
@@ -106,6 +120,8 @@ class ServiceInstanceTest : public Test {
 constexpr std::string_view ServiceInstanceTest::id_string;
 
 TEST_F(ServiceInstanceTest, LiteratorConstructorUsesStringView) {
+    RecordProperty("TestType", "requirements-based");
+    RecordProperty("DerivationTechnique", "design-analysis");
     String_registry registry;
     auto const registry_string_view = registry.insert(id_string).first;
 
@@ -115,6 +131,8 @@ TEST_F(ServiceInstanceTest, LiteratorConstructorUsesStringView) {
 }
 
 TEST_F(ServiceInstanceTest, StringConstructorAddsStringToRegistry) {
+    RecordProperty("TestType", "requirements-based");
+    RecordProperty("DerivationTechnique", "design-analysis");
     auto const instance = Service_instance{std::string(id_string)};
     EXPECT_EQ(instance.id.string_view(), id_string);
 
@@ -124,6 +142,8 @@ TEST_F(ServiceInstanceTest, StringConstructorAddsStringToRegistry) {
 }
 
 TEST_F(ServiceInstanceTest, StringViewConstructorAddsStringToRegistry) {
+    RecordProperty("TestType", "requirements-based");
+    RecordProperty("DerivationTechnique", "design-analysis");
     auto const instance = Service_instance{id_string};
     EXPECT_EQ(instance.id.string_view(), id_string);
 
@@ -133,6 +153,8 @@ TEST_F(ServiceInstanceTest, StringViewConstructorAddsStringToRegistry) {
 }
 
 TEST_F(ServiceInstanceTest, StringViewLiteralConstructorAddsStringToRegistry) {
+    RecordProperty("TestType", "requirements-based");
+    RecordProperty("DerivationTechnique", "design-analysis");
     auto const instance = Service_instance{id_string, Literal_tag{}};
     EXPECT_EQ(instance.id.string_view(), id_string);
 

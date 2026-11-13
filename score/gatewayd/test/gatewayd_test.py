@@ -11,10 +11,12 @@
 # SPDX-License-Identifier: Apache-2.0
 # *******************************************************************************
 
+import os
 from pathlib import Path
 import subprocess
-import sys
 import unittest
+
+import pytest
 
 from quality.pytest.process import assert_process_creates_network_instance
 from quality.pytest.process import stop_process
@@ -23,24 +25,27 @@ from quality.pytest.process import wait_for_output
 
 class GatewaydTest(unittest.TestCase):
     def setUp(self) -> None:
-        self.gatewayd = Path(sys.argv[1])
-        self.someipd = Path(sys.argv[2])
-        self.configuration = Path(sys.argv[3])
-        self.service_instance_manifest = Path(sys.argv[4])
-        self.someipd_service_instance_manifest = Path(sys.argv[5])
+        self.gatewayd = Path(os.environ["GATEWAYD"])
+        self.someipd = Path(os.environ["SOMEIPD"])
+        self.configuration = Path(os.environ["CONFIGURATION"])
+        self.service_instance_manifest = Path(os.environ["SERVICE_INSTANCE_MANIFEST"])
+        self.someipd_service_instance_manifest = Path(os.environ["SOMEIPD_SERVICE_INSTANCE_MANIFEST"])
 
+    @pytest.mark.test_properties({"TestType": "interface-test", "DerivationTechnique": "design-analysis"})
     def test_help_returns_success_and_prints_usage(self) -> None:
         result = subprocess.run([self.gatewayd, "--help"], capture_output=True, check=False, text=True)
 
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("Syntax: gatewayd -h/--help", result.stdout)
 
+    @pytest.mark.test_properties({"TestType": "interface-test", "DerivationTechnique": "design-analysis"})
     def test_creates_local_network_instance(self) -> None:
         self._assert_creates_network_instance(
             "Creating local service instance: window_control*Gateway started, waiting for shutdown signal...",
             "OFFER(0100): [0001.0001",
         )
 
+    @pytest.mark.test_properties({"TestType": "interface-test", "DerivationTechnique": "design-analysis"})
     def test_creates_remote_network_instance(self) -> None:
         self._assert_creates_network_instance(
             "Creating remote service instance: echo_response*Gateway started, waiting for shutdown signal...",
@@ -83,4 +88,4 @@ class GatewaydTest(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    _ = unittest.main(argv=[sys.argv[0]])
+    _ = unittest.main()

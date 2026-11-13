@@ -23,6 +23,8 @@
 namespace score::socom {
 
 TEST(RegistryStringViewTest, Iterator) {
+    RecordProperty("TestType", "requirements-based");
+    RecordProperty("DerivationTechnique", "design-analysis");
     String_registry registry;
     char const* data = "test_string";
     Registry_string_view string_view = registry.insert(std::string(data)).first;
@@ -45,6 +47,8 @@ TEST(RegistryStringViewTest, Iterator) {
 }
 
 TEST(RegistryStringViewTest, ConsistentHash) {
+    RecordProperty("TestType", "requirements-based");
+    RecordProperty("DerivationTechnique", "design-analysis");
     String_registry registry;
     Registry_string_view string_view = registry.insert(std::string("test_string")).first;
     auto hash_fn = std::hash<Registry_string_view>{};
@@ -58,6 +62,8 @@ TEST(RegistryStringViewTest, ConsistentHash) {
 
 /// same string value.
 TEST(RegistryStringViewTest, DifferentRegistryStringViewDifferentHashes) {
+    RecordProperty("TestType", "requirements-based");
+    RecordProperty("DerivationTechnique", "equivalence-classes");
     String_registry registry1;
     Registry_string_view string_view1 = registry1.insert(std::string("test_string")).first;
     String_registry registry2;
@@ -73,6 +79,8 @@ TEST(RegistryStringViewTest, DifferentRegistryStringViewDifferentHashes) {
 }
 
 TEST(RegistryStringViewTest, StreamOutput) {
+    RecordProperty("TestType", "requirements-based");
+    RecordProperty("DerivationTechnique", "design-analysis");
     String_registry registry;
     Registry_string_view string_view = registry.insert(std::string("test_string")).first;
     std::ostringstream oss;
@@ -86,6 +94,8 @@ TEST(RegistryStringViewTest, StreamOutput) {
 }
 
 TEST(RegistryStringViewTest, GlobalCompareOperator) {
+    RecordProperty("TestType", "requirements-based");
+    RecordProperty("DerivationTechnique", "equivalence-classes");
     String_registry registry;
     Registry_string_view string_view1 = registry.insert(std::string("test_string")).first;
     Registry_string_view string_view2 = registry.insert(std::string("test_string2")).first;
@@ -120,6 +130,8 @@ TEST(RegistryStringViewTest, GlobalCompareOperator) {
 }
 
 TEST(RegistryStringViewTest, StringLength) {
+    RecordProperty("TestType", "requirements-based");
+    RecordProperty("DerivationTechnique", "design-analysis");
     String_registry registry;
     Registry_string_view string_view = registry.insert(std::string("test_string")).first;
     auto length = std::string("test_string").length();
@@ -131,6 +143,8 @@ TEST(RegistryStringViewTest, StringLength) {
 }
 
 TEST(RegistryStringViewTest, StringEmpty) {
+    RecordProperty("TestType", "requirements-based");
+    RecordProperty("DerivationTechnique", "boundary-values");
     String_registry registry;
     Registry_string_view empty_string_view = registry.insert(std::string("")).first;
     Registry_string_view non_empty_string_view =
@@ -143,6 +157,8 @@ TEST(RegistryStringViewTest, StringEmpty) {
 }
 
 TEST(RegistryStringViewTest, Data) {
+    RecordProperty("TestType", "requirements-based");
+    RecordProperty("DerivationTechnique", "design-analysis");
     String_registry registry;
     Registry_string_view string_view = registry.insert(std::string("test_string")).first;
 
@@ -154,6 +170,8 @@ TEST(RegistryStringViewTest, Data) {
 }
 
 TEST(RegistryStringViewTest, MoveConstructor) {
+    RecordProperty("TestType", "requirements-based");
+    RecordProperty("DerivationTechnique", "design-analysis");
     String_registry registry;
     {
         Registry_string_view original_string_view =
@@ -171,6 +189,8 @@ TEST(RegistryStringViewTest, MoveConstructor) {
 }
 
 TEST(RegistryStringViewTest, MoveAssignmentOperator) {
+    RecordProperty("TestType", "requirements-based");
+    RecordProperty("DerivationTechnique", "design-analysis");
     String_registry registry;
     Registry_string_view original_string_view = registry.insert(std::string("test_string")).first;
     Registry_string_view another_string_view = registry.insert(std::string("another_string")).first;
@@ -183,6 +203,8 @@ TEST(RegistryStringViewTest, MoveAssignmentOperator) {
 }
 
 TEST(RegistryStringViewTest, CopyConstructor) {
+    RecordProperty("TestType", "requirements-based");
+    RecordProperty("DerivationTechnique", "design-analysis");
     String_registry registry;
     Registry_string_view original_string_view = registry.insert(std::string("test_string")).first;
 
@@ -194,6 +216,8 @@ TEST(RegistryStringViewTest, CopyConstructor) {
 }
 
 TEST(RegistryStringViewTest, CopyAssignmentOperator) {
+    RecordProperty("TestType", "requirements-based");
+    RecordProperty("DerivationTechnique", "design-analysis");
     String_registry registry;
     Registry_string_view original_string_view = registry.insert(std::string("test_string")).first;
     Registry_string_view another_string_view = registry.insert(std::string("another_string")).first;
